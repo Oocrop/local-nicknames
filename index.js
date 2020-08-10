@@ -22,6 +22,7 @@ module.exports = class LocalNicknames extends Plugin {
         const dmUserContextMenu = await getModule(m => m.default && m.default.displayName == "DMUserContextMenu");
         const groupDmUserContextMenu = await getModule(m => m.default && m.default.displayName == "GroupDMUserContextMenu");
         const guildUserContextMenu = await getModule(m => m.default && m.default.displayName == "GuildChannelUserContextMenu");
+        
         this.modalStack = await getModule(["push", "popWithKey"]);
 
         this.loadStylesheet("style.scss");
@@ -33,6 +34,10 @@ module.exports = class LocalNicknames extends Plugin {
         inject("local-nicknames_dmContextPatch", dmUserContextMenu, "default", this.contextPatch);
         inject("local-nicknames_groupDmContextPatch", groupDmUserContextMenu, "default", this.contextPatch);
         inject("local-nicknames_guildUserContextPatch", guildUserContextMenu, "default", this.contextPatch);
+        discordTag.default.displayName = "DiscordTag";
+        dmUserContextMenu.default.displayName = "DMUserContextMenu";
+        groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
+        guildUserContextMenu.default.displayName = "GuildChannelUserContextMenu";
     }
 
     pluginWillUnload() {
@@ -90,7 +95,7 @@ module.exports = class LocalNicknames extends Plugin {
             const localEdit = _this.settings.get(this.props.user.id);
             res.props.name.props.children = React.createElement(React.Fragment, null, [
                 React.createElement("span", {
-                    style:isAValidColor(localEdit.color) ? { color: localEdit.color } : res.props.name.props.style
+                    style: isAValidColor(localEdit.color) ? { color: localEdit.color } : res.props.name.props.style
                 }, localEdit.nickname || (this.props.nick || this.props.user.username)),
                 React.createElement("span", { style: res.props.name.props.style }, (this.props.nick || this.props.user.username))
             ]);
