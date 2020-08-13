@@ -54,7 +54,7 @@ module.exports = class LocalNicknames extends Plugin {
         uninject("local-nicknames_messageHeaderPatch");
         uninject("local-nicknames_privateChannelPatch");
         uninject("local-nicknames_memberListItemPatch");
-        inject("local-nicknames_voiceUserPatch");
+        uninject("local-nicknames_voiceUserPatch");
         uninject("local-nicknames_discordTagPatch");
         uninject("local-nicknames_dmContextPatch");
         uninject("local-nicknames_groupDmContextPatch");
