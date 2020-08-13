@@ -17,7 +17,7 @@ var Footer;
 var ColorPicker;
 
 function decimalToHex(number) {
-    return "#" + ((number & 0xff0000) >> 16).toString(16) + ((number & 0x00ff00) >> 8).toString(16) + (number & 0x0000ff).toString(16);
+    return "#" + ("0" + ((number & 0xff0000) >> 16).toString(16)).substr(-2, 2) + ("0" + ((number & 0x00ff00) >> 8).toString(16)).substr(-2, 2) + ("0" + (number & 0x0000ff).toString(16)).substr(-2, 2);
 }
 
 function hexToDecimal(hex) {
