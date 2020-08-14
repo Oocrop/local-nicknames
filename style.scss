@@ -102,3 +102,28 @@
         transform: translateY(-100%);
     }
 }
+
+.voice-user.has-local-nickname {
+    display: inline-flex;
+    flex-direction: column;
+    max-height: 20px;
+
+    span {
+        transition: transform .3s .3s;
+    }
+    span:first-child {
+        display: inline-block;
+    }
+    span:last-child {
+        display: inline-block;
+        transform: rotateX(90deg);
+    }
+}
+.voice-user.has-local-nickname:hover {
+    span:first-child {
+        transform: rotateX(-90deg) translateY(-100%);
+    }
+    span:last-child {
+        transform: translateY(-100%);
+    }
+}
