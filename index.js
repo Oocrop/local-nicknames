@@ -91,7 +91,7 @@ module.exports = class LocalNicknames extends Plugin {
 
     privateChannelPatch(_, res) {
         if (!_this.settings.get("privateChannel", true)) return res;
-        if (_this.settings.get(this.props.user.id)) {
+        if (this.props.user && _this.settings.get(this.props.user.id)) {
             const localEdit = _this.settings.get(this.props.user.id);
             res.props.name.props.children = React.createElement(React.Fragment, null, [
                 React.createElement("span", {
