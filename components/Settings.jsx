@@ -25,7 +25,7 @@ module.exports = class Settings extends React.Component {
             <Category
                 name="Where to display"
                 opened={this.state.categoryOpen}
-                onChange={() => this.setState({ categoryOpen: !this.state.pluginsCategoryOpen })}
+                onChange={() => this.setState({ categoryOpen: !this.state.categoryOpen })}
             >
                 <SwitchItem
                     value={getSetting("messageHeader", true)}
