@@ -17,6 +17,11 @@ module.exports = class Settings extends React.Component {
                 onChange={() => toggleSetting("hover", true)}
                 note="Causes weird spacing if original nickname is longer than local"
             >Show original nickname on hover</SwitchItem>
+            <SwitchItem
+                value={getSetting("limit", false)}
+                onChange={() => toggleSetting("limit", false)}
+                note="I am not responsible for any issue this might cause"
+            >Disable nicknames length limit</SwitchItem>
             <Category
                 name="Where to display"
                 opened={this.state.categoryOpen}

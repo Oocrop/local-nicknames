@@ -46,8 +46,8 @@ class EditNicknameModal extends React.Component {
                         onChange={_ => this.setNickname(_)}
                         placeholder={this.props.username}
                         value={this.state.nickname}
-                        maxlength={32}
-                    >{"Nickname, " + this.state.nickname.length + "/32"}</TextInput>
+                        maxlength={this.props.limit ? 1024 : 32}
+                    >{"Nickname, " + this.state.nickname.length + (this.props.limit ? "/∞ (1024)" : "/32")}</TextInput>
                     <FormItem
                         title="Color"
                     >
@@ -76,7 +76,7 @@ class EditNicknameModal extends React.Component {
     }
 
     setNickname(nickname) {
-        this.setState(prevState => Object.assign(prevState, { nickname: nickname.substr(0, 32) }));
+        this.setState(prevState => Object.assign(prevState, { nickname: nickname.substr(0, this.props.limit ? 1024 : 32) }));
     }
     setColor(color) {
         this.setState(prevState => Object.assign(prevState, { color: color }));

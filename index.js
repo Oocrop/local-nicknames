@@ -170,6 +170,7 @@ module.exports = class LocalNicknames extends Plugin {
                     _this.modalStack.push(EditModal, {
                         username: user.username,
                         defaults: localEdit,
+                        limit: _this.settings.get("limit", false),
                         close: (state) => {
                             if (state == {} || (state.nickname == "" && !isAValidColor(state.color))) _this.settings.delete(user.id);
                             else _this.settings.set(user.id, state);
