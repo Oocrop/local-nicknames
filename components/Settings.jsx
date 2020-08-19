@@ -13,8 +13,8 @@ module.exports = class Settings extends React.Component {
 
         return <>
             <SwitchItem
-                value={getSetting("hover", true)}
-                onChange={() => toggleSetting("hover", true)}
+                value={getSetting("hover", false)}
+                onChange={() => toggleSetting("hover", false)}
                 note="Causes weird spacing if original nickname is longer than local"
             >Show original nickname on hover</SwitchItem>
             <SwitchItem
