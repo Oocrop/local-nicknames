@@ -30,8 +30,8 @@ class EditNicknameModal extends React.Component {
         super(props);
 
         this.state = {
-            nickname: props.defaults.nickname || "",
-            color: props.defaults.color || (document.documentElement.classList.contains("theme-dark") ? "#000000" : "#ffffff")
+            nickname: props.changed.nickname || "",
+            color: props.changed.color || (document.documentElement.classList.contains("theme-dark") ? "#000000" : "#ffffff")
         };
     }
 
@@ -66,7 +66,7 @@ class EditNicknameModal extends React.Component {
                         autoFocus={true}
                     >{Messages.DONE}</Button>
                     <Button
-                        onClick={() => this.props.close(this.props.defaults)}
+                        onClick={() => this.props.close(this.props.changed)}
                         look={Button.Looks.LINK}
                         color={Button.Colors.PRIMARY}
                     >{Messages.CANCEL}</Button>

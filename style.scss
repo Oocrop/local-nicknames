@@ -1,10 +1,16 @@
-.username-1A8OIy.has-local-nickname {
+.animate-nickname {
     display: inline-flex;
     flex-direction: column;
     max-height: 1.375rem;
+    &.dm-channel,
+    &.roleColor-rz2vM0,
+    &.discord-tag,
+    &.voice-user {
+        max-height: 20px;
+    }
 
     span {
-        transition: transform .3s .3s;
+        transition: transform 0.3s 0.3s;
     }
     span:first-child {
         display: inline-block;
@@ -13,117 +19,23 @@
         display: inline-block;
         transform: rotateX(90deg);
     }
-}
-.username-1A8OIy.has-local-nickname:hover {
-    span:first-child {
-        transform: rotateX(-90deg) translateY(-100%);
+
+    &:hover {
+        span:first-child {
+            transform: rotateX(-90deg) translateY(-100%);
+        }
+        span:last-child {
+            transform: translateY(-100%);
+        }
     }
-    span:last-child {
-        transform: translateY(-100%);
-    }
 }
+
 .compact-T3H92H {
-    .username-1A8OIy.has-local-nickname {
+    .username-1A8OIy.animate-nickname {
         margin-left: 65px;
     }
 }
 
-.dm-channel.has-local-nickname {
-    display: inline-flex;
-    flex-direction: column;
-    max-height: 20px;
-
-    span {
-        transition: transform .3s .3s;
-    }
-    span:first-child {
-        display: inline-block;
-    }
-    span:last-child {
-        display: inline-block;
-        transform: rotateX(90deg);
-    }
-}
-.dm-channel.has-local-nickname:hover {
-    span:first-child {
-        transform: rotateX(-90deg) translateY(-100%);
-    }
-    span:last-child {
-        transform: translateY(-100%);
-    }
-}
-
-.roleColor-rz2vM0.has-local-nickname {
-    display: inline-flex;
-    flex-direction: column;
-    max-height: 20px;
-
-    span {
-        transition: transform .3s .3s;
-    }
-    span:first-child {
-        display: inline-block;
-    }
-    span:last-child {
-        display: inline-block;
-        transform: rotateX(90deg);
-    }
-}
-.roleColor-rz2vM0.has-local-nickname:hover {
-    span:first-child {
-        transform: rotateX(-90deg) translateY(-100%);
-    }
-    span:last-child {
-        transform: translateY(-100%);
-    }
-}
-
-.discord-tag.has-local-nickname {
-    display: inline-flex;
-    flex-direction: column;
-    max-height: 20px;
-
-    span {
-        transition: transform .3s .3s;
-    }
-    span:first-child {
-        display: inline-block;
-    }
-    span:last-child {
-        display: inline-block;
-        transform: rotateX(90deg);
-    }
-}
-.discord-tag.has-local-nickname:hover {
-    span:first-child {
-        transform: rotateX(-90deg) translateY(-100%);
-    }
-    span:last-child {
-        transform: translateY(-100%);
-    }
-}
-
-.voice-user.has-local-nickname {
-    display: inline-flex;
-    flex-direction: column;
-    max-height: 20px;
-
-    span {
-        transition: transform .3s .3s;
-    }
-    span:first-child {
-        display: inline-block;
-    }
-    span:last-child {
-        display: inline-block;
-        transform: rotateX(90deg);
-    }
-}
-.voice-user.has-local-nickname:hover {
-    span:first-child {
-        transform: rotateX(-90deg) translateY(-100%);
-    }
-    span:last-child {
-        transform: translateY(-100%);
-    }
+.tooltip-nickname {
+    display: inline;
 }

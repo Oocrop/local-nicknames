@@ -1,4 +1,4 @@
-const { settings: { Category, SwitchItem } } = require("powercord/components");
+const { settings: { Category, SwitchItem, SelectInput } } = require("powercord/components");
 const { React } = require("powercord/webpack");
 
 module.exports = class Settings extends React.Component {
@@ -9,7 +9,7 @@ module.exports = class Settings extends React.Component {
     }
 
     render() {
-        const { getSetting, toggleSetting } = this.props;
+        const { getSetting, toggleSetting, updateSetting } = this.props;
 
         return <>
             <SwitchItem
@@ -17,6 +17,31 @@ module.exports = class Settings extends React.Component {
                 onChange={() => toggleSetting("hover", false)}
                 note="Causes weird spacing if original nickname is longer than local"
             >Show original nickname on hover</SwitchItem>
+            <SelectInput
+                value={getSetting("hoverType", 0)}
+                onChange={value => updateSetting("hoverType", value.value)}
+                disabled={!getSetting("hover", false)}
+                options={
+                    [
+                        {
+                            value: 0,
+                            label: "Animation"
+                        },
+                        {
+                            value: 1,
+                            label: "Animation (reverted)"
+                        },
+                        {
+                            value: 2,
+                            label: "Tooltip"
+                        },
+                        {
+                            value: 3,
+                            label: "Tooltip (reverted)"
+                        }
+                    ]
+                }
+            >Original nickname display type</SelectInput>
             <SwitchItem
                 value={getSetting("limit", false)}
                 onChange={() => toggleSetting("limit", false)}

@@ -4,6 +4,7 @@ const { inject, uninject } = require("powercord/injector");
 const { Menu: { MenuGroup, MenuItem } } = require("powercord/components");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
+const NicknameWrapper = require("./components/NicknameWrapper");
 var _this;
 
 function isAValidColor(color) {
@@ -74,15 +75,20 @@ module.exports = class LocalNicknames extends Plugin {
             const result = usernameWrapper.props.__originalChildren.apply(this, args);
             if (_this.settings.get(message.author.id)) {
                 const localEdit = _this.settings.get(message.author.id);
-                const currentNickname = result.props.children;
-                result.props.children =
-                    React.createElement(React.Fragment, null, [
-                        React.createElement("span", {
-                            style: isAValidColor(localEdit.color) ? { color: localEdit.color } : result.props.style
-                        }, localEdit.nickname || currentNickname),
-                        _this.settings.get("hover") ? React.createElement("span", { style: result.props.style }, currentNickname) : null
-                    ]);
-                result.props.className = _this.settings.get("hover") ? (result.props.className ? result.props.className : "") + " has-local-nickname" : result.props.className;
+                const reverted = (_this.settings.get("hoverType") & 1) == 1 && _this.settings.get("hover");
+                const tooltip = (_this.settings.get("hoverType") & 2) >> 1 == 1 && _this.settings.get("hover");
+                result.props.className = _this.settings.get("hover") && !tooltip ? (result.props.className ? result.props.className : "") + " animate-nickname" : result.props.className;
+                result.props.children = React.createElement(NicknameWrapper, {
+                    reverted,
+                    tooltip,
+                    hover: _this.settings.get("hover"),
+                    original: {
+                        nickname: result.props.children,
+                        style: result.props.style
+                    },
+                    changed: localEdit,
+                    isAValidColor
+                });
             }
             return result;
         };
@@ -93,13 +99,20 @@ module.exports = class LocalNicknames extends Plugin {
         if (!_this.settings.get("privateChannel", true)) return res;
         if (this.props.user && _this.settings.get(this.props.user.id)) {
             const localEdit = _this.settings.get(this.props.user.id);
-            res.props.name.props.children = React.createElement(React.Fragment, null, [
-                React.createElement("span", {
-                    style: isAValidColor(localEdit.color) ? { color: localEdit.color } : {}
-                }, localEdit.nickname || this.props.user.username),
-                _this.settings.get("hover") ? React.createElement("span", null, this.props.user.username) : null
-            ]);
-            res.props.name.props.className = _this.settings.get("hover") ? (res.props.name.props.className ? res.props.name.props.className : "") + " dm-channel has-local-nickname" : res.props.name.props.className;
+            const reverted = (_this.settings.get("hoverType") & 1) == 1 && _this.settings.get("hover");
+            const tooltip = (_this.settings.get("hoverType") & 2) >> 1 == 1 && _this.settings.get("hover");
+            res.props.name.props.className = _this.settings.get("hover") && !tooltip ? (res.props.name.props.className ? res.props.name.props.className : "") + " dm-channel animate-nickname" : res.props.name.props.className;
+            res.props.name.props.children = React.createElement(NicknameWrapper, {
+                reverted,
+                tooltip,
+                hover: _this.settings.get("hover"),
+                original: {
+                    nickname: this.props.user.username,
+                    style: {}
+                },
+                changed: localEdit,
+                isAValidColor
+            });
         }
         return res;
     }
@@ -109,13 +122,20 @@ module.exports = class LocalNicknames extends Plugin {
         if (!this.props.user) return res;
         if (_this.settings.get(this.props.user.id)) {
             const localEdit = _this.settings.get(this.props.user.id);
-            res.props.name.props.children = React.createElement(React.Fragment, null, [
-                React.createElement("span", {
-                    style: isAValidColor(localEdit.color) ? { color: localEdit.color } : res.props.name.props.style
-                }, localEdit.nickname || (this.props.nick || this.props.user.username)),
-                _this.settings.get("hover") ? React.createElement("span", { style: res.props.name.props.style }, (this.props.nick || this.props.user.username)) : null
-            ]);
-            res.props.name.props.className = _this.settings.get("hover") ? (res.props.name.props.className ? res.props.name.props.className : "") + " has-local-nickname" : res.props.name.props.className;
+            const reverted = (_this.settings.get("hoverType") & 1) == 1 && _this.settings.get("hover");
+            const tooltip = (_this.settings.get("hoverType") & 2) >> 1 == 1 && _this.settings.get("hover");
+            res.props.name.props.className = _this.settings.get("hover") && !tooltip ? (res.props.name.props.className ? res.props.name.props.className : "") + " animate-nickname" : res.props.name.props.className;
+            res.props.name.props.children = React.createElement(NicknameWrapper, {
+                reverted,
+                tooltip,
+                hover: _this.settings.get("hover"),
+                original: {
+                    nickname: this.props.nick || this.props.user.username,
+                    style: res.props.name.props.style || {}
+                },
+                changed: localEdit,
+                isAValidColor
+            });
         }
         return res;
     }
@@ -125,13 +145,20 @@ module.exports = class LocalNicknames extends Plugin {
         if (!res) return res;
         if (_this.settings.get(this.props.user.id)) {
             const localEdit = _this.settings.get(this.props.user.id);
-            res.props.children = React.createElement(React.Fragment, null, [
-                React.createElement("span", {
-                    style: isAValidColor(localEdit.color) ? { color: localEdit.color } : {}
-                }, localEdit.nickname || (this.props.nick || this.props.user.username)),
-                _this.settings.get("hover") ? React.createElement("span", {}, (this.props.nick || this.props.user.username)) : null
-            ]);
-            res.props.className = _this.settings.get("hover") ? (res.props.className ? res.props.className : "") + " voice-user has-local-nickname" : res.props.className;
+            const reverted = (_this.settings.get("hoverType") & 1) == 1 && _this.settings.get("hover");
+            const tooltip = (_this.settings.get("hoverType") & 2) >> 1 == 1 && _this.settings.get("hover");
+            res.props.className = _this.settings.get("hover") && !tooltip ? (res.props.className ? res.props.className : "") + " voice-user animate-nickname" : res.props.className;
+            res.props.children = React.createElement(NicknameWrapper, {
+                reverted,
+                tooltip,
+                hover: _this.settings.get("hover"),
+                original: {
+                    nickname: this.props.nick || this.props.user.username,
+                    style: {}
+                },
+                changed: localEdit,
+                isAValidColor
+            });
         }
 
         return res;
@@ -141,16 +168,25 @@ module.exports = class LocalNicknames extends Plugin {
         if (!_this.settings.get("discordTag", true)) return res;
         if (!_this.settings.get(args[0].user.id)) return res;
         const localEdit = _this.settings.get(args[0].user.id);
+        const reverted = (_this.settings.get("hoverType") & 1) == 1 && _this.settings.get("hover");
+        const tooltip = (_this.settings.get("hoverType") & 2) >> 1 == 1 && _this.settings.get("hover");
 
         const originalType = res.type;
 
         res.type = function (props) {
             const res = originalType(props);
-            res.props.children[0].props.children = React.createElement("span", { className: _this.settings.get("hover") ? "discord-tag has-local-nickname" : "" }, [
-                React.createElement("span", {
-                    style: isAValidColor(localEdit.color) ? { color: localEdit.color } : {}
-                }, localEdit.nickname || props.name),
-                _this.settings.get("hover") ? React.createElement("span", null, props.name) : null
+            res.props.children[0].props.children = React.createElement("span", { className: _this.settings.get("hover") && !tooltip ? "discord-tag animate-nickname" : "" }, [
+                React.createElement(NicknameWrapper, {
+                    reverted,
+                    tooltip,
+                    hover: _this.settings.get("hover"),
+                    original: {
+                        nickname: props.name,
+                        style: {}
+                    },
+                    changed: localEdit,
+                    isAValidColor
+                })
             ]);
             return res;
         };
@@ -169,7 +205,7 @@ module.exports = class LocalNicknames extends Plugin {
                 action: () => {
                     _this.modalStack.push(EditModal, {
                         username: user.username,
-                        defaults: localEdit,
+                        changed: localEdit,
                         limit: _this.settings.get("limit", false),
                         close: (state) => {
                             if (state == {} || (state.nickname == "" && !isAValidColor(state.color))) _this.settings.delete(user.id);
