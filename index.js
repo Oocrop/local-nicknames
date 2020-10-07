@@ -132,17 +132,15 @@ module.exports = class LocalNicknames extends Plugin {
     messageHeaderPatch(args, res) {
         if (!_this.settings.get("messageHeader", true)) return res;
         const usernameWrapper =
-            res.props.children[1].props.children[1].props.children[1];
+            res.props.children[1].props.children[1].props.children.props
+                .children[0];
         const message = args[0].message;
         if (!usernameWrapper) return res;
-        if (usernameWrapper.props.__originalChildren) return res;
-        usernameWrapper.props.__originalChildren =
-            usernameWrapper.props.children;
-        usernameWrapper.props.children = function (...args) {
-            const result = usernameWrapper.props.__originalChildren.apply(
-                this,
-                args
-            );
+        if (usernameWrapper.__originalType) return res;
+        usernameWrapper.props.__originalType = usernameWrapper.type;
+        usernameWrapper.type = function (props) {
+            const { __originalType: originalType, ...passedProps } = props;
+            const result = originalType.apply(this, [passedProps]);
             if (_this.settings.get(message.author.id)) {
                 const localEdit = _this.settings.get(message.author.id);
                 const reverted =
@@ -151,23 +149,27 @@ module.exports = class LocalNicknames extends Plugin {
                 const tooltip =
                     (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
                     _this.settings.get("hover");
-                result.props.className =
+                const original = result.props.children[1].props.children(
+                    result.props.children[1].props
+                );
+                original.props.className =
                     _this.settings.get("hover") && !tooltip
-                        ? (result.props.className
-                              ? result.props.className
+                        ? (original.props.className
+                              ? original.props.className
                               : "") + " animate-nickname"
-                        : result.props.className;
-                result.props.children = React.createElement(NicknameWrapper, {
+                        : original.props.className;
+                original.props.children = React.createElement(NicknameWrapper, {
                     reverted,
                     tooltip,
                     hover: _this.settings.get("hover"),
                     original: {
-                        nickname: result.props.children,
+                        nickname: original.props.children,
                         style: result.props.style
                     },
                     changed: localEdit,
                     isAValidColor
                 });
+                result.props.children[1].props.children = () => original;
             }
             return result;
         };
