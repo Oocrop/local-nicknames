@@ -16,7 +16,7 @@ module.exports = class Settings extends React.Component {
         return (
             <>
                 <SwitchItem
-                    checked={getSetting("hover", false)}
+                    value={getSetting("hover", false)}
                     onChange={() => toggleSetting("hover", false)}
                     note="Causes weird spacing if original nickname is longer than local"
                 >
@@ -48,7 +48,7 @@ module.exports = class Settings extends React.Component {
                     Original nickname display type
                 </SelectInput>
                 <SwitchItem
-                    checked={getSetting("limit", false)}
+                    value={getSetting("limit", false)}
                     onChange={() => toggleSetting("limit", false)}
                     note="I am not responsible for any issue this might cause"
                 >
@@ -64,32 +64,32 @@ module.exports = class Settings extends React.Component {
                     }
                 >
                     <SwitchItem
-                        checked={getSetting("messageHeader", true)}
+                        value={getSetting("messageHeader", true)}
                         onChange={() => toggleSetting("messageHeader", true)}
                     >
                         Message Header
                     </SwitchItem>
                     <SwitchItem
-                        checked={getSetting("privateChannel", true)}
+                        value={getSetting("privateChannel", true)}
                         onChange={() => toggleSetting("privateChannel", true)}
                     >
                         DM Tab
                     </SwitchItem>
                     <SwitchItem
-                        checked={getSetting("memberList", true)}
+                        value={getSetting("memberList", true)}
                         onChange={() => toggleSetting("memberList", true)}
                     >
                         Member List
                     </SwitchItem>
                     <SwitchItem
-                        checked={getSetting("voiceUser", true)}
+                        value={getSetting("voiceUser", true)}
                         onChange={() => toggleSetting("voiceUser", true)}
                     >
                         Voice Channels
                     </SwitchItem>
                     <SwitchItem
                         note="This applies to User Popout/Profile, Mutual Friends, Reactors"
-                        checked={getSetting("discordTag", true)}
+                        value={getSetting("discordTag", true)}
                         onChange={() => toggleSetting("discordTag", true)}
                     >
                         Discord Tag
