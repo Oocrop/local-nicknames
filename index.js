@@ -8,6 +8,7 @@ const { inject, uninject } = require("powercord/injector");
 const {
     Menu: { MenuGroup, MenuItem }
 } = require("powercord/components");
+const { findInReactTree } = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
 const NicknameWrapper = require("./components/NicknameWrapper");
@@ -131,156 +132,179 @@ module.exports = class LocalNicknames extends Plugin {
 
     messageHeaderPatch(args, res) {
         if (!_this.settings.get("messageHeader", true)) return res;
-        const usernameWrapper =
-            res.props.children[1].props.children[1].props.children.props
-                .children[0];
         const message = args[0].message;
-        if (!usernameWrapper) return res;
-        if (usernameWrapper.__originalType) return res;
-        usernameWrapper.props.__originalType = usernameWrapper.type;
-        usernameWrapper.type = function (props) {
-            const { __originalType: originalType, ...passedProps } = props;
-            const result = originalType.apply(this, [passedProps]);
-            if (_this.settings.get(message.author.id)) {
-                const localEdit = _this.settings.get(message.author.id);
-                const reverted =
-                    (_this.settings.get("hoverType") & 1) == 1 &&
-                    _this.settings.get("hover");
-                const tooltip =
-                    (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
-                    _this.settings.get("hover");
-                const original = result.props.children[1].props.children(
-                    result.props.children[1].props
+        const usernameWrapper = findInReactTree(
+            res,
+            e => e.props && e.props.message
+        );
+        const inlineReplyUsernameWrapper = findInReactTree(
+            res,
+            e => e.props && e.props.message && e.props.message.id !== message.id
+        );
+        function patchUsernameWrapper(wrapper) {
+            if (!wrapper) return;
+            if (wrapper.__originalType) return;
+            wrapper.props.__originalType = wrapper.type;
+            wrapper.type = function (props) {
+                const { __originalType: originalType, ...passedProps } = props;
+                const result = originalType.apply(this, [passedProps]);
+                const basePopoutElement = findInReactTree(
+                    result,
+                    e =>
+                        e.props &&
+                        e.props.renderPopout &&
+                        typeof e.props.children === "function"
                 );
-                original.props.className =
-                    _this.settings.get("hover") && !tooltip
-                        ? (original.props.className
-                              ? original.props.className
-                              : "") + " animate-nickname"
-                        : original.props.className;
-                original.props.children = React.createElement(NicknameWrapper, {
-                    reverted,
-                    tooltip,
-                    hover: _this.settings.get("hover"),
-                    original: {
-                        nickname: original.props.children,
-                        style: result.props.style
-                    },
-                    changed: localEdit,
-                    isAValidColor
-                });
-                result.props.children[1].props.children = () => original;
-            }
-            return result;
-        };
+                const localEdit = _this.settings.get(message.author.id);
+                if (localEdit && basePopoutElement) {
+                    const reverted =
+                        (_this.settings.get("hoverType") & 1) == 1 &&
+                        _this.settings.get("hover");
+                    const tooltip =
+                        (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+                        _this.settings.get("hover");
+                    const original = basePopoutElement.props.children(
+                        result.props.children[1].props
+                    );
+                    original.props.className =
+                        _this.settings.get("hover") && !tooltip
+                            ? (original.props.className
+                                  ? original.props.className
+                                  : "") + " animate-nickname"
+                            : original.props.className;
+                    original.props.children = React.createElement(
+                        NicknameWrapper,
+                        {
+                            reverted,
+                            tooltip,
+                            hover: _this.settings.get("hover"),
+                            original: {
+                                nickname: original.props.children,
+                                style: result.props.style
+                            },
+                            changed: localEdit,
+                            isAValidColor
+                        }
+                    );
+                    basePopoutElement.props.children = () => original;
+                }
+                return result;
+            };
+        }
+        patchUsernameWrapper(usernameWrapper);
+        patchUsernameWrapper(inlineReplyUsernameWrapper);
         return res;
     }
 
     privateChannelPatch(_, res) {
         if (!_this.settings.get("privateChannel", true)) return res;
-        if (this.props.user && _this.settings.get(this.props.user.id)) {
-            const localEdit = _this.settings.get(this.props.user.id);
-            const reverted =
-                (_this.settings.get("hoverType") & 1) == 1 &&
-                _this.settings.get("hover");
-            const tooltip =
-                (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
-                _this.settings.get("hover");
-            res.props.name.props.className =
-                _this.settings.get("hover") && !tooltip
-                    ? (res.props.name.props.className
-                          ? res.props.name.props.className
-                          : "") + " dm-channel animate-nickname"
-                    : res.props.name.props.className;
-            res.props.name.props.children = React.createElement(
-                NicknameWrapper,
-                {
-                    reverted,
-                    tooltip,
-                    hover: _this.settings.get("hover"),
-                    original: {
-                        nickname: this.props.user.username,
-                        style: {}
-                    },
-                    changed: localEdit,
-                    isAValidColor
-                }
-            );
-        }
+        if (!this.props.user) return res;
+        const localEdit = _this.settings.get(this.props.user.id);
+        if (!localEdit) return res;
+
+        const reverted =
+            (_this.settings.get("hoverType") & 1) == 1 &&
+            _this.settings.get("hover");
+        const tooltip =
+            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            _this.settings.get("hover");
+
+        res.props.name.props.className =
+            _this.settings.get("hover") && !tooltip
+                ? (res.props.name.props.className
+                      ? res.props.name.props.className
+                      : "") + " dm-channel animate-nickname"
+                : res.props.name.props.className;
+
+        res.props.name.props.children = React.createElement(NicknameWrapper, {
+            reverted,
+            tooltip,
+            hover: _this.settings.get("hover"),
+            original: {
+                nickname: this.props.user.username,
+                style: {}
+            },
+            changed: localEdit,
+            isAValidColor
+        });
+
         return res;
     }
 
     memberListItemPatch(_, res) {
         if (!_this.settings.get("memberList", true)) return res;
         if (!this.props.user) return res;
-        if (_this.settings.get(this.props.user.id)) {
-            const localEdit = _this.settings.get(this.props.user.id);
-            const reverted =
-                (_this.settings.get("hoverType") & 1) == 1 &&
-                _this.settings.get("hover");
-            const tooltip =
-                (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
-                _this.settings.get("hover");
-            res.props.name.props.className =
-                _this.settings.get("hover") && !tooltip
-                    ? (res.props.name.props.className
-                          ? res.props.name.props.className
-                          : "") + " animate-nickname"
-                    : res.props.name.props.className;
-            res.props.name.props.children = React.createElement(
-                NicknameWrapper,
-                {
-                    reverted,
-                    tooltip,
-                    hover: _this.settings.get("hover"),
-                    original: {
-                        nickname: this.props.nick || this.props.user.username,
-                        style: res.props.name.props.style || {}
-                    },
-                    changed: localEdit,
-                    isAValidColor
-                }
-            );
-        }
+        const localEdit = _this.settings.get(this.props.user.id);
+        if (!localEdit) return res;
+
+        const reverted =
+            (_this.settings.get("hoverType") & 1) == 1 &&
+            _this.settings.get("hover");
+        const tooltip =
+            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            _this.settings.get("hover");
+
+        res.props.name.props.className =
+            _this.settings.get("hover") && !tooltip
+                ? (res.props.name.props.className
+                      ? res.props.name.props.className
+                      : "") + " animate-nickname"
+                : res.props.name.props.className;
+
+        res.props.name.props.children = React.createElement(NicknameWrapper, {
+            reverted,
+            tooltip,
+            hover: _this.settings.get("hover"),
+            original: {
+                nickname: this.props.nick || this.props.user.username,
+                style: res.props.name.props.style || {}
+            },
+            changed: localEdit,
+            isAValidColor
+        });
+
         return res;
     }
 
     voiceUserPatch(_, res) {
         if (!_this.settings.get("voiceUser", true)) return res;
         if (!res) return res;
-        if (_this.settings.get(this.props.user.id)) {
-            const localEdit = _this.settings.get(this.props.user.id);
-            const reverted =
-                (_this.settings.get("hoverType") & 1) == 1 &&
-                _this.settings.get("hover");
-            const tooltip =
-                (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
-                _this.settings.get("hover");
-            res.props.className =
-                _this.settings.get("hover") && !tooltip
-                    ? (res.props.className ? res.props.className : "") +
-                      " voice-user animate-nickname"
-                    : res.props.className;
-            res.props.children = React.createElement(NicknameWrapper, {
-                reverted,
-                tooltip,
-                hover: _this.settings.get("hover"),
-                original: {
-                    nickname: this.props.nick || this.props.user.username,
-                    style: {}
-                },
-                changed: localEdit,
-                isAValidColor
-            });
-        }
+        const localEdit = _this.settings.get(this.props.user.id);
+        if (!localEdit) return res;
+
+        const reverted =
+            (_this.settings.get("hoverType") & 1) == 1 &&
+            _this.settings.get("hover");
+        const tooltip =
+            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            _this.settings.get("hover");
+
+        res.props.className =
+            _this.settings.get("hover") && !tooltip
+                ? (res.props.className ? res.props.className : "") +
+                  " voice-user animate-nickname"
+                : res.props.className;
+
+        res.props.children = React.createElement(NicknameWrapper, {
+            reverted,
+            tooltip,
+            hover: _this.settings.get("hover"),
+            original: {
+                nickname: this.props.nick || this.props.user.username,
+                style: {}
+            },
+            changed: localEdit,
+            isAValidColor
+        });
 
         return res;
     }
 
     discordTagPatch(args, res) {
         if (!_this.settings.get("discordTag", true)) return res;
-        if (!_this.settings.get(args[0].user.id)) return res;
         const localEdit = _this.settings.get(args[0].user.id);
+        if (!localEdit) return res;
+
         const reverted =
             (_this.settings.get("hoverType") & 1) == 1 &&
             _this.settings.get("hover");
