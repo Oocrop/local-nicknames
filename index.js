@@ -155,7 +155,7 @@ module.exports = class LocalNicknames extends Plugin {
                         e.props.renderPopout &&
                         typeof e.props.children === "function"
                 );
-                const localEdit = _this.settings.get(message.author.id);
+                const localEdit = _this.settings.get(props.message.author.id);
                 if (localEdit && basePopoutElement) {
                     const reverted =
                         (_this.settings.get("hoverType") & 1) == 1 &&
