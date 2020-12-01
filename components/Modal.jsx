@@ -17,6 +17,7 @@ let Header;
 let Content;
 let Footer;
 let ColorPicker;
+let marginBottom20;
 
 function decimalToHex(number) {
     return "#" + number.toString(16);
@@ -60,7 +61,7 @@ class EditNicknameModal extends React.Component {
                             this.state.nickname.length +
                             (this.props.limit ? "/∞ (1024)" : "/32")}
                     </TextInput>
-                    <FormItem>
+                    <FormItem className={marginBottom20}>
                         <FormTitle>Color</FormTitle>
                         <ColorPicker
                             onChange={_ => this.setColor(decimalToHex(_))}
@@ -121,6 +122,7 @@ module.exports = AsyncComponent.from(
         Content = ModalModule.ModalContent;
         Footer = ModalModule.ModalFooter;
         ColorPicker = await getModule(m => m.displayName === "ColorPicker");
+        marginBottom20 = (await getModule(["marginBottom20"])).marginBottom20;
 
         resolve(EditNicknameModal);
     })
