@@ -18,12 +18,12 @@ function isAValidColor(color) {
     if (!color) return false;
     if (
         document.documentElement.classList.contains("theme-dark") &&
-        color == "#000000"
+        color === "#000000"
     )
         return false;
     if (
         !document.documentElement.classList.contains("theme-dark") &&
-        color == "#ffffff"
+        color === "#ffffff"
     )
         return false;
     return true;
@@ -44,18 +44,18 @@ module.exports = class LocalNicknames extends Plugin {
         const memberListItem = await getModuleByDisplayName("MemberListItem");
         const voiceUser = await getModuleByDisplayName("VoiceUser");
         const discordTag = await getModule(
-            m => m.default && m.default.displayName == "DiscordTag"
+            m => m.default && m.default.displayName === "DiscordTag"
         );
         const dmUserContextMenu = await getModule(
-            m => m.default && m.default.displayName == "DMUserContextMenu"
+            m => m.default && m.default.displayName === "DMUserContextMenu"
         );
         const groupDmUserContextMenu = await getModule(
-            m => m.default && m.default.displayName == "GroupDMUserContextMenu"
+            m => m.default && m.default.displayName === "GroupDMUserContextMenu"
         );
         const guildUserContextMenu = await getModule(
             m =>
                 m.default &&
-                m.default.displayName == "GuildChannelUserContextMenu"
+                m.default.displayName === "GuildChannelUserContextMenu"
         );
 
         this.modalStack = await getModule(["push", "popWithKey"]);
@@ -158,10 +158,10 @@ module.exports = class LocalNicknames extends Plugin {
                 const localEdit = _this.settings.get(props.message.author.id);
                 if (localEdit && basePopoutElement) {
                     const reverted =
-                        (_this.settings.get("hoverType") & 1) == 1 &&
+                        (_this.settings.get("hoverType") & 1) === 1 &&
                         _this.settings.get("hover");
                     const tooltip =
-                        (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+                        (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
                         _this.settings.get("hover");
                     const original = basePopoutElement.props.children(
                         result.props.children[1].props
@@ -203,10 +203,10 @@ module.exports = class LocalNicknames extends Plugin {
         if (!localEdit) return res;
 
         const reverted =
-            (_this.settings.get("hoverType") & 1) == 1 &&
+            (_this.settings.get("hoverType") & 1) === 1 &&
             _this.settings.get("hover");
         const tooltip =
-            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
             _this.settings.get("hover");
 
         res.props.name.props.className =
@@ -238,10 +238,10 @@ module.exports = class LocalNicknames extends Plugin {
         if (!localEdit) return res;
 
         const reverted =
-            (_this.settings.get("hoverType") & 1) == 1 &&
+            (_this.settings.get("hoverType") & 1) === 1 &&
             _this.settings.get("hover");
         const tooltip =
-            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
             _this.settings.get("hover");
 
         res.props.name.props.className =
@@ -273,10 +273,10 @@ module.exports = class LocalNicknames extends Plugin {
         if (!localEdit) return res;
 
         const reverted =
-            (_this.settings.get("hoverType") & 1) == 1 &&
+            (_this.settings.get("hoverType") & 1) === 1 &&
             _this.settings.get("hover");
         const tooltip =
-            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
             _this.settings.get("hover");
 
         res.props.className =
@@ -306,10 +306,10 @@ module.exports = class LocalNicknames extends Plugin {
         if (!localEdit) return res;
 
         const reverted =
-            (_this.settings.get("hoverType") & 1) == 1 &&
+            (_this.settings.get("hoverType") & 1) === 1 &&
             _this.settings.get("hover");
         const tooltip =
-            (_this.settings.get("hoverType") & 2) >> 1 == 1 &&
+            (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
             _this.settings.get("hover");
 
         const originalType = res.type;
@@ -361,8 +361,8 @@ module.exports = class LocalNicknames extends Plugin {
                             limit: _this.settings.get("limit", false),
                             close: state => {
                                 if (
-                                    state == {} ||
-                                    (state.nickname == "" &&
+                                    state === {} ||
+                                    (state.nickname === "" &&
                                         !isAValidColor(state.color))
                                 )
                                     _this.settings.delete(user.id);
@@ -395,7 +395,7 @@ module.exports = class LocalNicknames extends Plugin {
                 c.props &&
                 c.props.children &&
                 c.props.children.props &&
-                c.props.children.props.id == "devmode-copy-id"
+                c.props.children.props.id === "devmode-copy-id"
         );
 
         if (devGroup) {

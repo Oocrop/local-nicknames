@@ -7,14 +7,16 @@ const {
 const {
     AsyncComponent,
     Button,
-    settings: { TextInput, ColorPickerInput }
+    settings: { TextInput }
 } = require("powercord/components");
 
 let FormTitle;
+let FormItem;
 let ModalRoot;
 let Header;
 let Content;
 let Footer;
+let ColorPicker;
 
 function decimalToHex(number) {
     return "#" + number.toString(16);
@@ -58,20 +60,23 @@ class EditNicknameModal extends React.Component {
                             this.state.nickname.length +
                             (this.props.limit ? "/∞ (1024)" : "/32")}
                     </TextInput>
-                    <ColorPickerInput
-                        onChange={_ => this.setColor(decimalToHex(_))}
-                        value={hexToDecimal(this.state.color)}
-                        defaultColor={
-                            hexToDecimal(
-                                document.documentElement.classList.contains(
-                                    "theme-dark"
-                                )
-                                    ? "#000000"
-                                    : "#ffffff"
-                            ) - 16777216
-                        }
-                        colors={ROLE_COLORS.map(c => c)}
-                    >Color</ColorPickerInput>
+                    <FormItem>
+                        <FormTitle>Color</FormTitle>
+                        <ColorPicker
+                            onChange={_ => this.setColor(decimalToHex(_))}
+                            value={hexToDecimal(this.state.color)}
+                            defaultColor={
+                                hexToDecimal(
+                                    document.documentElement.classList.contains(
+                                        "theme-dark"
+                                    )
+                                        ? "#000000"
+                                        : "#ffffff"
+                                ) - 16777216
+                            }
+                            colors={ROLE_COLORS.map(c => c)}
+                        />
+                    </FormItem>
                 </Content>
                 <Footer>
                     <Button
@@ -107,12 +112,15 @@ class EditNicknameModal extends React.Component {
 
 module.exports = AsyncComponent.from(
     new Promise(async resolve => {
-        FormTitle = (await getModule(["FormTitle"])).FormTitle;
+        const FormModule = await getModule(["FormTitle"]);
+        FormTitle = FormModule.FormTitle;
+        FormItem = FormModule.FormItem;
         const ModalModule = await getModule(["ModalRoot"]);
         ModalRoot = ModalModule.ModalRoot;
         Header = ModalModule.ModalHeader;
         Content = ModalModule.ModalContent;
         Footer = ModalModule.ModalFooter;
+        ColorPicker = await getModule(m => m.displayName === "ColorPicker");
 
         resolve(EditNicknameModal);
     })
