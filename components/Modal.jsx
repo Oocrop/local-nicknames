@@ -2,6 +2,7 @@ const {
     React,
     i18n: { Messages },
     getModule,
+    getModuleByDisplayName,
     constants: { ROLE_COLORS }
 } = require("powercord/webpack");
 const {
@@ -121,7 +122,30 @@ module.exports = AsyncComponent.from(
         Header = ModalModule.ModalHeader;
         Content = ModalModule.ModalContent;
         Footer = ModalModule.ModalFooter;
-        ColorPicker = await getModule(m => m.displayName === "ColorPicker");
+        ColorPicker =
+            (await getModule(m => m.displayName === "ColorPicker")) ||
+            AsyncComponent.from(
+                (async () => {
+                    const DecoratedGuildSettingsRoles = await getModuleByDisplayName(
+                        "FluxContainer(GuildSettingsRoles)"
+                    );
+                    const GuildSettingsRoles = DecoratedGuildSettingsRoles.prototype.render.call(
+                        { memoizedGetStateFromStores: () => void 0 }
+                    ).type;
+                    const SettingsPanel = GuildSettingsRoles.prototype.renderRoleSettings.call(
+                        {
+                            props: { guild: { isOwner: () => true } },
+                            renderHeader: () => null,
+                            getSelectedRole: () => "0"
+                        }
+                    ).props.children[1].type;
+                    const SuspendedPicker = SettingsPanel.prototype.renderColorPicker.call(
+                        { props: { role: {} } }
+                    ).props.children.type;
+                    const mdl = await SuspendedPicker().props.children.type._ctor();
+                    return mdl.default;
+                })()
+            );
         marginBottom20 = (await getModule(["marginBottom20"])).marginBottom20;
 
         resolve(EditNicknameModal);
