@@ -67,13 +67,13 @@ module.exports = class Settings extends React.Component {
                         value={getSetting("messageHeader", true)}
                         onChange={() => toggleSetting("messageHeader", true)}
                     >
-                        Message Header
+                        In Chat
                     </SwitchItem>
                     <SwitchItem
                         value={getSetting("privateChannel", true)}
                         onChange={() => toggleSetting("privateChannel", true)}
                     >
-                        DM Tab
+                        DMs
                     </SwitchItem>
                     <SwitchItem
                         value={getSetting("memberList", true)}
@@ -93,6 +93,12 @@ module.exports = class Settings extends React.Component {
                         onChange={() => toggleSetting("discordTag", true)}
                     >
                         Discord Tag
+                    </SwitchItem>
+                    <SwitchItem
+                        value={getSetting("replies", true)}
+                        onChange={() => toggleSetting("replies", true)}
+                    >
+                        Replies
                     </SwitchItem>
                 </Category>
             </>
