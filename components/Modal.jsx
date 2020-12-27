@@ -122,7 +122,7 @@ module.exports = AsyncComponent.from(
         Header = ModalModule.ModalHeader;
         Content = ModalModule.ModalContent;
         Footer = ModalModule.ModalFooter;
-        ColorPicker = await getModule(m => m.displayName === "ColorPicker");
+        ColorPicker = await getModule(m => m.displayName === "ColorPicker" && m.defaultProps);
         marginBottom20 = (await getModule(["marginBottom20"])).marginBottom20;
 
         resolve(EditNicknameModal);
