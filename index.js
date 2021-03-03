@@ -29,9 +29,7 @@ function isAValidColor(color) {
     return true;
 }
 
-module.exports = class LocalNicknames extends (
-    Plugin
-) {
+module.exports = class LocalNicknames extends Plugin {
     async startPlugin() {
         _this = this;
 
@@ -45,8 +43,8 @@ module.exports = class LocalNicknames extends (
         const privateChannel = await getModuleByDisplayName("PrivateChannel");
         const memberListItem = await getModuleByDisplayName("MemberListItem");
         const voiceUser = await getModuleByDisplayName("VoiceUser");
-        const reply = await getModule(
-            m => m.default?.displayName === "RepliedMessage"
+        const replyUsername = await getModule(
+            m => m.default?.displayName === "Username"
         );
         const discordTag = await getModule(
             m => m.default?.displayName === "DiscordTag"
@@ -95,7 +93,12 @@ module.exports = class LocalNicknames extends (
             "default",
             this.discordTagPatch
         );
-        inject("local-nicknames_replyPatch", reply, "default", this.replyPatch);
+        inject(
+            "local-nicknames_replyUsernamePatch",
+            replyUsername,
+            "default",
+            this.replyUsernamePatch
+        );
         inject(
             "local-nicknames_dmContextPatch",
             dmUserContextMenu,
@@ -115,7 +118,7 @@ module.exports = class LocalNicknames extends (
             this.contextPatch
         );
         discordTag.default.displayName = "DiscordTag";
-        reply.default.displayName = "RepliedMessage";
+        replyUsername.default.displayName = "Username";
         dmUserContextMenu.default.displayName = "DMUserContextMenu";
         groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
         guildUserContextMenu.default.displayName =
@@ -128,7 +131,7 @@ module.exports = class LocalNicknames extends (
         uninject("local-nicknames_memberListItemPatch");
         uninject("local-nicknames_voiceUserPatch");
         uninject("local-nicknames_discordTagPatch");
-        uninject("local-nicknames_replyPatch");
+        uninject("local-nicknames_replyUsernamePatch");
         uninject("local-nicknames_dmContextPatch");
         uninject("local-nicknames_groupDmContextPatch");
         uninject("local-nicknames_guildUserContextPatch");
@@ -191,7 +194,7 @@ module.exports = class LocalNicknames extends (
             }
             return result;
         };
-        
+
         return res;
     }
 
@@ -343,28 +346,18 @@ module.exports = class LocalNicknames extends (
         return res;
     }
 
-    replyPatch(args, res) {
+    replyUsernamePatch(args, res) {
         if (!_this.settings.get("replies", true)) return res;
-        const localEdit = _this.settings.get(
-            args[0].referencedMessage.message.author.id
-        );
+        const localEdit = _this.settings.get(args[0]?.message?.author.id);
         if (!localEdit) return res;
 
-        const username = findInReactTree(
-            res,
-            e =>
-                e.props?.renderPopout &&
-                e.props?.message?.id === args[0].referencedMessage.message.id
-        );
+        if (res.props.__originalType) return;
 
-        if (!username) return res;
-        if (username.__originalType) return res;
-
-        username.props.__originalType = username.type;
-        username.type = function (props) {
+        res.props.__originalType = res.type;
+        res.type = function (props) {
             const { __originalType: originalType, ...passedProps } = props;
             const result = originalType.apply(this, [passedProps]);
-            const basePopoutElement = findInReactTree(
+            const popoutElement = findInReactTree(
                 result,
                 e =>
                     e.props &&
@@ -372,14 +365,14 @@ module.exports = class LocalNicknames extends (
                     typeof e.props.children === "function"
             );
 
-            if (localEdit && basePopoutElement) {
+            if (localEdit && popoutElement) {
                 const reverted =
                     (_this.settings.get("hoverType") & 1) === 1 &&
                     _this.settings.get("hover");
                 const tooltip =
                     (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
                     _this.settings.get("hover");
-                const original = basePopoutElement.props.children(
+                const original = popoutElement.props.children(
                     result.props.children[1].props
                 );
                 original.props.className =
@@ -388,18 +381,21 @@ module.exports = class LocalNicknames extends (
                               ? original.props.className
                               : "") + " animate-nickname"
                         : original.props.className;
-                original.props.children = React.createElement(NicknameWrapper, {
-                    reverted,
-                    tooltip,
-                    hover: _this.settings.get("hover"),
-                    original: {
-                        nickname: original.props.children,
-                        style: result.props.style
-                    },
-                    changed: localEdit,
-                    isAValidColor
-                });
-                basePopoutElement.props.children = () => original;
+                original.props.children = [
+                    props.withMentionPrefix ? "@" : null,
+                    React.createElement(NicknameWrapper, {
+                        reverted,
+                        tooltip,
+                        hover: _this.settings.get("hover"),
+                        original: {
+                            nickname: original.props.children,
+                            style: result.props.style
+                        },
+                        changed: localEdit,
+                        isAValidColor
+                    })
+                ];
+                popoutElement.props.children = () => original;
             }
             return result;
         };
