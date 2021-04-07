@@ -39,7 +39,12 @@ module.exports = class LocalNicknames extends Plugin {
             render: PluginSettings
         });
 
-        const messageHeader = await getModule(["MessageTimestamp"]);
+        const messageHeader = await getModule(
+            m =>
+                (m.__powercordOriginal_default || m.default)
+                    ?.toString()
+                    .indexOf("headerText") > -1
+        );
         const privateChannel = await getModuleByDisplayName("PrivateChannel");
         const memberListItem = await getModuleByDisplayName("MemberListItem");
         const voiceUser = await getModuleByDisplayName("VoiceUser");
@@ -146,51 +151,49 @@ module.exports = class LocalNicknames extends Plugin {
         const localEdit = _this.settings.get(message.author.id);
         if (!localEdit) return res;
 
-        const username = findInReactTree(res, e => e.props && e.props.message);
+        const usernameWrapper = findInReactTree(res, e => e.props?.message);
 
-        if (!username) return res;
-        if (username.__originalType) return res;
+        if (!usernameWrapper) return res;
+        if (usernameWrapper.__originalType) return res;
 
-        username.props.__originalType = username.type;
-        username.type = function (props) {
+        usernameWrapper.props.__originalType = usernameWrapper.type;
+        usernameWrapper.type = function (props) {
             const { __originalType: originalType, ...passedProps } = props;
             const result = originalType.apply(this, [passedProps]);
-            const basePopoutElement = findInReactTree(
+            const popout = findInReactTree(
                 result,
-                e =>
-                    e.props &&
-                    e.props.renderPopout &&
-                    typeof e.props.children === "function"
+                e => typeof e.props?.renderPopout === "function"
             );
+            const popoutRendered = popout.props?.children(popout.props);
 
-            if (localEdit && basePopoutElement) {
+            if (popoutRendered) {
                 const reverted =
                     (_this.settings.get("hoverType") & 1) === 1 &&
                     _this.settings.get("hover");
                 const tooltip =
                     (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
                     _this.settings.get("hover");
-                const original = basePopoutElement.props.children(
-                    result.props.children[1].props
-                );
-                original.props.className =
+                popoutRendered.props.className =
                     _this.settings.get("hover") && !tooltip
-                        ? (original.props.className
-                              ? original.props.className
+                        ? (popoutRendered.props.className
+                              ? popoutRendered.props.className
                               : "") + " animate-nickname"
-                        : original.props.className;
-                original.props.children = React.createElement(NicknameWrapper, {
-                    reverted,
-                    tooltip,
-                    hover: _this.settings.get("hover"),
-                    original: {
-                        nickname: original.props.children,
-                        style: result.props.style
-                    },
-                    changed: localEdit,
-                    isAValidColor
-                });
-                basePopoutElement.props.children = () => original;
+                        : popoutRendered.props.className;
+                popoutRendered.props.children = React.createElement(
+                    NicknameWrapper,
+                    {
+                        reverted,
+                        tooltip,
+                        hover: _this.settings.get("hover"),
+                        original: {
+                            nickname: popoutRendered.props.children,
+                            style: popoutRendered.props.style
+                        },
+                        changed: localEdit,
+                        isAValidColor
+                    }
+                );
+                popout.props.children = () => popoutRendered;
             }
             return result;
         };
