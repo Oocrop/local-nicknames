@@ -164,15 +164,16 @@ module.exports = class LocalNicknames extends Plugin {
                 result,
                 e => typeof e.props?.renderPopout === "function"
             );
-            const popoutRendered = popout.props?.children(popout.props);
+            const popoutRendered = popout?.props?.children(popout.props);
+
+            const reverted =
+                (_this.settings.get("hoverType") & 1) === 1 &&
+                _this.settings.get("hover");
+            const tooltip =
+                (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
+                _this.settings.get("hover");
 
             if (popoutRendered) {
-                const reverted =
-                    (_this.settings.get("hoverType") & 1) === 1 &&
-                    _this.settings.get("hover");
-                const tooltip =
-                    (_this.settings.get("hoverType") & 2) >> 1 === 1 &&
-                    _this.settings.get("hover");
                 popoutRendered.props.className =
                     _this.settings.get("hover") && !tooltip
                         ? (popoutRendered.props.className
@@ -194,6 +195,29 @@ module.exports = class LocalNicknames extends Plugin {
                     }
                 );
                 popout.props.children = () => popoutRendered;
+            } else {
+                const username = findInReactTree(
+                    result,
+                    e => typeof e.props?.children === "string"
+                );
+                if (!username) return result;
+                username.props.className =
+                    _this.settings.get("hover") && !tooltip
+                        ? (username.props.className
+                              ? username.props.className
+                              : "") + " animate-nickname"
+                        : username.props.className;
+                username.props.children = React.createElement(NicknameWrapper, {
+                    reverted,
+                    tooltip,
+                    hover: _this.settings.get("hover"),
+                    original: {
+                        nickname: username.props.children,
+                        style: username.props.style
+                    },
+                    changed: localEdit,
+                    isAValidColor
+                });
             }
             return result;
         };
