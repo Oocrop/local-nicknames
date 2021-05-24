@@ -175,8 +175,8 @@ module.exports = class LocalNicknames extends Plugin {
 					reverse: _this.settings.get("reverse"),
 					hover: _this.settings.get("hover"),
 					original: {
-						nickname: popoutRendered.props.children,
-						style: popoutRendered.props.style
+						nickname: username.props.children,
+						style: username.props.style
 					},
 					changed: localEdit
 				});
