@@ -1,7 +1,7 @@
 {
-    "name": "Local Nicknames",
-    "version": "1.0.5",
-    "author": "Oocrop",
-    "license": "MIT",
-    "description": "Allows you to locally edit nicknames of users"
+	"name": "Local Nicknames",
+	"version": "1.0.6",
+	"author": "Oocrop",
+	"license": "MIT",
+	"description": "Allows you to locally edit nicknames of users"
 }

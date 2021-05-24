@@ -3,18 +3,16 @@ const { React } = require("powercord/webpack");
 
 module.exports = function (props) {
     const {
-        reverted,
-        tooltip,
+        reverse,
         hover,
         original,
-        changed,
-        isAValidColor
+        changed
     } = props;
 
     const changedSpan = (
         <span
             style={
-                isAValidColor(changed.color)
+                changed.color !== "default"
                     ? { color: changed.color }
                     : original.style
             }
@@ -26,22 +24,21 @@ module.exports = function (props) {
         <span style={original.style}>{original.nickname}</span>
     );
 
-    if (tooltip) {
+    if (hover) {
         return (
             <Tooltip
-                text={reverted ? changedSpan : originalSpan}
+                text={reverse ? changedSpan : originalSpan}
                 position="bottom"
                 className="tooltip-nickname"
             >
-                {reverted ? originalSpan : changedSpan}
+                {reverse ? originalSpan : changedSpan}
             </Tooltip>
         );
     }
 
     return (
         <>
-            {reverted ? originalSpan : changedSpan}
-            {hover ? (reverted ? changedSpan : originalSpan) : null}
+            {changedSpan}
         </>
     );
 };
