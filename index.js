@@ -51,8 +51,6 @@ module.exports = class LocalNicknames extends Plugin {
 
 		this.modalStack = await getModule(["push", "popWithKey"]);
 
-		this.loadStylesheet("style.scss");
-
 		inject(
 			"local-nicknames_messageHeaderPatch",
 			messageHeader,
