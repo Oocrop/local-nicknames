@@ -45,8 +45,8 @@ module.exports = class Settings extends React.Component {
 					}
 				>
 					<SwitchItem
-						value={getSetting("messageHeader", true)}
-						onChange={() => toggleSetting("messageHeader", true)}
+						value={getSetting("inChat", true)}
+						onChange={() => toggleSetting("inChat", true)}
 					>
 						In Chat
 					</SwitchItem>

@@ -24,11 +24,11 @@ module.exports = class LocalNicknames extends Plugin {
 			render: PluginSettings
 		});
 
-		const messageHeader = await getModule(
+		const chatUsername = await getModule(
 			m =>
 				(m.__powercordOriginal_default || m.default)
 					?.toString()
-					.indexOf("headerText") > -1
+					.indexOf("getGuildMemberAvatarURLSimple)({") > -1
 		);
 		const privateChannel = await getModuleByDisplayName("PrivateChannel");
 		const memberListItem = await getModuleByDisplayName("MemberListItem");
@@ -54,10 +54,10 @@ module.exports = class LocalNicknames extends Plugin {
 		this.loadStylesheet("style.css");
 
 		inject(
-			"local-nicknames_messageHeaderPatch",
-			messageHeader,
+			"local-nicknames_chatUsernamePatch",
+			chatUsername,
 			"default",
-			this.messageHeaderPatch
+			this.chatUsernamePatch
 		);
 		inject(
 			"local-nicknames_privateChannelPatch",
@@ -116,7 +116,7 @@ module.exports = class LocalNicknames extends Plugin {
 	}
 
 	pluginWillUnload() {
-		uninject("local-nicknames_messageHeaderPatch");
+		uninject("local-nicknames_chatUsernamePatch");
 		uninject("local-nicknames_privateChannelPatch");
 		uninject("local-nicknames_memberListItemPatch");
 		uninject("local-nicknames_voiceUserPatch");
@@ -129,61 +129,49 @@ module.exports = class LocalNicknames extends Plugin {
 		powercord.api.settings.unregisterSettings(this.entityID);
 	}
 
-	messageHeaderPatch(args, res) {
-		if (!_this.settings.get("messageHeader", true)) return res;
+	chatUsernamePatch(args, res) {
+		if (!_this.settings.get("inChat", true)) return res;
 
 		const message = args[0].message;
 		const localEdit = _this.settings.get(message.author.id);
 		if (!localEdit) return res;
 
-		const usernameWrapper = findInReactTree(res, e => e.props?.message);
+		const popout = findInReactTree(
+			res,
+			e => typeof e.props?.renderPopout === "function"
+		);
+		const popoutRendered = popout?.props?.children(popout.props);
 
-		if (!usernameWrapper) return res;
-		if (usernameWrapper.__originalType) return res;
-
-		usernameWrapper.props.__originalType = usernameWrapper.type;
-		usernameWrapper.type = function (props) {
-			const { __originalType: originalType, ...passedProps } = props;
-			const result = originalType.apply(this, [passedProps]);
-			const popout = findInReactTree(
-				result,
-				e => typeof e.props?.renderPopout === "function"
-			);
-			const popoutRendered = popout?.props?.children(popout.props);
-
-			if (popoutRendered) {
-				popoutRendered.props.children = React.createElement(
-					NicknameWrapper,
-					{
-						reverse: _this.settings.get("reverse"),
-						hover: _this.settings.get("hover"),
-						original: {
-							nickname: popoutRendered.props.children,
-							style: popoutRendered.props.style
-						},
-						changed: localEdit
-					}
-				);
-				popout.props.children = () => popoutRendered;
-			} else {
-				const username = findInReactTree(
-					result,
-					e => typeof e.props?.children === "string"
-				);
-				if (!username) return result;
-				username.props.children = React.createElement(NicknameWrapper, {
+		if (popoutRendered) {
+			popoutRendered.props.children = React.createElement(
+				NicknameWrapper,
+				{
 					reverse: _this.settings.get("reverse"),
 					hover: _this.settings.get("hover"),
 					original: {
-						nickname: username.props.children,
-						style: username.props.style
+						nickname: popoutRendered.props.children,
+						style: popoutRendered.props.style
 					},
 					changed: localEdit
-				});
-			}
-			return result;
-		};
-
+				}
+			);
+			popout.props.children = () => popoutRendered;
+		} else {
+			const username = findInReactTree(
+				res,
+				e => typeof e.props?.children === "string"
+			);
+			if (!username) return res;
+			username.props.children = React.createElement(NicknameWrapper, {
+				reverse: _this.settings.get("reverse"),
+				hover: _this.settings.get("hover"),
+				original: {
+					nickname: username.props.children,
+					style: username.props.style
+				},
+				changed: localEdit
+			});
+		}
 		return res;
 	}
 
