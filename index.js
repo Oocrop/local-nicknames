@@ -84,12 +84,6 @@ module.exports = class LocalNicknames extends Plugin {
 			this.discordTagPatch
 		);
 		inject(
-			"local-nicknames_replyUsernamePatch",
-			replyUsername,
-			"default",
-			this.replyUsernamePatch
-		);
-		inject(
 			"local-nicknames_dmContextPatch",
 			dmUserContextMenu,
 			"default",
@@ -121,7 +115,6 @@ module.exports = class LocalNicknames extends Plugin {
 		uninject("local-nicknames_memberListItemPatch");
 		uninject("local-nicknames_voiceUserPatch");
 		uninject("local-nicknames_discordTagPatch");
-		uninject("local-nicknames_replyUsernamePatch");
 		uninject("local-nicknames_dmContextPatch");
 		uninject("local-nicknames_groupDmContextPatch");
 		uninject("local-nicknames_guildUserContextPatch");
@@ -130,7 +123,16 @@ module.exports = class LocalNicknames extends Plugin {
 	}
 
 	chatUsernamePatch(args, res) {
-		if (!_this.settings.get("inChat", true)) return res;
+		if (
+			!args[0].hasOwnProperty("withMentionPrefix") &&
+			!_this.settings.get("inChat", true)
+		)
+			return res;
+		if (
+			args[0].hasOwnProperty("withMentionPrefix") &&
+			!_this.settings.get("replies", true)
+		)
+			return res;
 
 		const message = args[0].message;
 		const localEdit = _this.settings.get(message.author.id);
@@ -143,9 +145,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const popoutRendered = popout?.props?.children(popout.props);
 
 		if (popoutRendered) {
-			popoutRendered.props.children = React.createElement(
-				NicknameWrapper,
-				{
+			popoutRendered.props.children = [
+				args[0].withMentionPrefix ? "@" : null,
+				React.createElement(NicknameWrapper, {
 					reverse: _this.settings.get("reverse"),
 					hover: _this.settings.get("hover"),
 					original: {
@@ -153,8 +155,8 @@ module.exports = class LocalNicknames extends Plugin {
 						style: popoutRendered.props.style
 					},
 					changed: localEdit
-				}
-			);
+				})
+			];
 			popout.props.children = () => popoutRendered;
 		} else {
 			const username = findInReactTree(
@@ -257,54 +259,6 @@ module.exports = class LocalNicknames extends Plugin {
 				]
 			);
 			return res;
-		};
-
-		return res;
-	}
-
-	replyUsernamePatch(args, res) {
-		if (!_this.settings.get("replies", true)) return res;
-		const localEdit = _this.settings.get(args[0]?.message?.author.id);
-		if (!localEdit) return res;
-
-		if (res.props.__originalType) return;
-
-		res.props.__originalType = res.type;
-		res.type = function (props) {
-			const { __originalType: originalType, ...passedProps } = props;
-			const result = originalType.apply(this, [passedProps]);
-			const popoutElement = findInReactTree(
-				result,
-				e =>
-					e.props &&
-					e.props.renderPopout &&
-					typeof e.props.children === "function"
-			);
-
-			if (localEdit && popoutElement) {
-				const original = popoutElement.props.children(
-					result.props.children[1].props
-				);
-				original.props.children = [
-					props.withMentionPrefix ? "@" : null,
-					React.createElement(NicknameWrapper, {
-						reverse: _this.settings.get("reverse"),
-						hover: _this.settings.get("hover"),
-						original: {
-							nickname: props.withMentionPrefix
-								? original.props.children.substr(
-										1,
-										original.props.children.length - 1
-								  )
-								: original.props.children,
-							style: result.props.style
-						},
-						changed: localEdit
-					})
-				];
-				popoutElement.props.children = () => original;
-			}
-			return result;
 		};
 
 		return res;
