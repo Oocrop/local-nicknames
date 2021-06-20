@@ -11,7 +11,6 @@ const {
 const { findInReactTree } = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
-const NicknameWrapper = require("./components/NicknameWrapper");
 var _this;
 
 module.exports = class LocalNicknames extends Plugin {
@@ -142,37 +141,25 @@ module.exports = class LocalNicknames extends Plugin {
 			res,
 			e => typeof e.props?.renderPopout === "function"
 		);
-		const popoutRendered = popout?.props?.children(popout.props);
+		const popoutChildrenRendered = popout?.props?.children(popout.props);
 
-		if (popoutRendered) {
-			popoutRendered.props.children = [
+		if (popoutChildrenRendered) {
+			popoutChildrenRendered.props.children = [
 				args[0].withMentionPrefix ? "@" : null,
-				React.createElement(NicknameWrapper, {
-					reverse: _this.settings.get("reverse"),
-					hover: _this.settings.get("hover"),
-					original: {
-						nickname: popoutRendered.props.children,
-						style: popoutRendered.props.style
-					},
-					changed: localEdit
-				})
+				localEdit.nickname
 			];
-			popout.props.children = () => popoutRendered;
+			if (localEdit.color !== "default")
+				popoutChildrenRendered.props.style = { color: localEdit.color };
+			popout.props.children = () => popoutChildrenRendered;
 		} else {
 			const username = findInReactTree(
 				res,
 				e => typeof e.props?.children === "string"
 			);
 			if (!username) return res;
-			username.props.children = React.createElement(NicknameWrapper, {
-				reverse: _this.settings.get("reverse"),
-				hover: _this.settings.get("hover"),
-				original: {
-					nickname: username.props.children,
-					style: username.props.style
-				},
-				changed: localEdit
-			});
+			username.props.children = localEdit.nickname;
+			if (localEdit.color !== "default")
+				username.props.style = { color: localEdit.color };
 		}
 		return res;
 	}
@@ -183,15 +170,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const localEdit = _this.settings.get(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.name.props.children = React.createElement(NicknameWrapper, {
-			reverse: _this.settings.get("reverse"),
-			hover: _this.settings.get("hover"),
-			original: {
-				nickname: this.props.user.username,
-				style: {}
-			},
-			changed: localEdit
-		});
+		res.props.name.props.children = localEdit.nickname;
+		if (localEdit.color !== "default")
+			res.props.name.props.style = { color: localEdit.color };
 
 		return res;
 	}
@@ -202,15 +183,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const localEdit = _this.settings.get(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.name.props.children = React.createElement(NicknameWrapper, {
-			reverse: _this.settings.get("reverse"),
-			hover: _this.settings.get("hover"),
-			original: {
-				nickname: this.props.nick || this.props.user.username,
-				style: res.props.name.props.style || {}
-			},
-			changed: localEdit
-		});
+		res.props.name.props.children = localEdit.nickname;
+		if (localEdit.color !== "default")
+			res.props.name.props.style = { color: localEdit.color };
 
 		return res;
 	}
@@ -221,45 +196,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const localEdit = _this.settings.get(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.children = React.createElement(NicknameWrapper, {
-			reverse: _this.settings.get("reverse"),
-			hover: _this.settings.get("hover"),
-			original: {
-				nickname: this.props.nick || this.props.user.username,
-				style: {}
-			},
-			changed: localEdit
-		});
-
-		return res;
-	}
-
-	discordTagPatch(args, res) {
-		if (!_this.settings.get("discordTag", true)) return res;
-		const localEdit = _this.settings.get(args[0].user.id);
-		if (!localEdit) return res;
-
-		const originalType = res.type;
-
-		res.type = function (props) {
-			const res = originalType(props);
-			res.props.children[0].props.children = React.createElement(
-				"span",
-				{},
-				[
-					React.createElement(NicknameWrapper, {
-						reverse: _this.settings.get("reverse"),
-						hover: _this.settings.get("hover"),
-						original: {
-							nickname: props.name,
-							style: {}
-						},
-						changed: localEdit
-					})
-				]
-			);
-			return res;
-		};
+		res.props.children = localEdit.nickname;
+		if (localEdit.color !== "default")
+			res.props.style = { color: localEdit.color };
 
 		return res;
 	}
@@ -282,7 +221,9 @@ module.exports = class LocalNicknames extends Plugin {
 							close: state => {
 								if (
 									state === {} ||
-									(state.nickname === "" &&
+									(state.nickname &&
+										state.nickname === "" &&
+										state.color &&
 										state.color === "default")
 								)
 									_this.settings.delete(user.id);
@@ -296,7 +237,8 @@ module.exports = class LocalNicknames extends Plugin {
 					);
 				}
 			}),
-			localEdit.nickname || localEdit.color !== "default"
+			(localEdit.nickname && localEdit.nickname !== "") ||
+			(localEdit.color && localEdit.color !== "default")
 				? React.createElement(MenuItem, {
 						id: "local-nicknames-reset",
 						label: "Reset Local Nickname",

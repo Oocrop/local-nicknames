@@ -16,19 +16,6 @@ module.exports = class Settings extends React.Component {
 		return (
 			<>
 				<SwitchItem
-					value={getSetting("hover", true)}
-					onChange={() => toggleSetting("hover", true)}
-				>
-					Show original nickname on hover
-				</SwitchItem>
-				<SwitchItem
-					disabled={!getSetting("hover", true)}
-					value={getSetting("reverse", false)}
-					onChange={() => toggleSetting("reverse", false)}
-				>
-					Show local nickname on hover instead
-				</SwitchItem>
-				<SwitchItem
 					value={getSetting("limit", false)}
 					onChange={() => toggleSetting("limit", false)}
 					note="I am not responsible for any issue this might cause"
