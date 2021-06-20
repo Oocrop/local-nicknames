@@ -40,7 +40,7 @@ class EditNicknameModal extends React.Component {
 
 	render() {
 		return (
-			<ModalRoot transitionState={1}>
+			<ModalRoot size="dynamic" transitionState={1}>
 				<Header separator={false}>
 					<FormTitle tag={FormTitle.Tags.H4}>
 						{this.props.username}
