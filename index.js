@@ -6,11 +6,14 @@ const {
 } = require("powercord/webpack");
 const { inject, uninject } = require("powercord/injector");
 const {
+	Tooltip,
+	Icon,
 	Menu: { MenuGroup, MenuItem }
 } = require("powercord/components");
 const { findInReactTree } = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
+const avatarManager = require("./avatarManager");
 var _this;
 
 module.exports = class LocalNicknames extends Plugin {
@@ -32,11 +35,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const privateChannel = await getModuleByDisplayName("PrivateChannel");
 		const memberListItem = await getModuleByDisplayName("MemberListItem");
 		const voiceUser = await getModuleByDisplayName("VoiceUser");
-		const replyUsername = await getModule(
-			m => m.default?.displayName === "Username"
-		);
-		const discordTag = await getModule(
-			m => m.default?.displayName === "DiscordTag"
+		this.avatarModule = await getModule(["AnimatedAvatar"]);
+		const userPopoutInfo = await getModule(
+			m => m.default?.displayName === "UserPopoutInfo"
 		);
 		const dmUserContextMenu = await getModule(
 			m => m.default?.displayName === "DMUserContextMenu"
@@ -49,6 +50,9 @@ module.exports = class LocalNicknames extends Plugin {
 		);
 
 		this.modalStack = await getModule(["push", "popWithKey"]);
+		this.userHeaderClasses = await getModule(["headerTag"]);
+		this.avatarClasses = await getModule(["largeAvatar"]);
+		this.flexClasses = await getModule(["flex", "directionRow"]);
 
 		this.loadStylesheet("style.css");
 
@@ -77,10 +81,23 @@ module.exports = class LocalNicknames extends Plugin {
 			this.voiceUserPatch
 		);
 		inject(
-			"local-nicknames_discordTagPatch",
-			discordTag,
+			"local-nicknames_voiceUserAvatarPatch",
+			voiceUser.prototype,
+			"renderAvatar",
+			this.voiceUserAvatarPatch
+		);
+		inject(
+			"local-nicknames_avatarPatch",
+			this.avatarModule,
 			"default",
-			this.discordTagPatch
+			this.avatarPatch,
+			true
+		);
+		inject(
+			"local-nicknames_userPopoutInfoPatch",
+			userPopoutInfo,
+			"default",
+			this.userPopoutInfoPatch
 		);
 		inject(
 			"local-nicknames_dmContextPatch",
@@ -100,8 +117,7 @@ module.exports = class LocalNicknames extends Plugin {
 			"default",
 			this.contextPatch
 		);
-		discordTag.default.displayName = "DiscordTag";
-		replyUsername.default.displayName = "Username";
+		this.avatarModule.default.Sizes = this.avatarModule.Sizes;
 		dmUserContextMenu.default.displayName = "DMUserContextMenu";
 		groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
 		guildUserContextMenu.default.displayName =
@@ -113,12 +129,16 @@ module.exports = class LocalNicknames extends Plugin {
 		uninject("local-nicknames_privateChannelPatch");
 		uninject("local-nicknames_memberListItemPatch");
 		uninject("local-nicknames_voiceUserPatch");
-		uninject("local-nicknames_discordTagPatch");
+		uninject("local-nicknames_voiceUserAvatarPatch");
+		uninject("local-nicknames_avatarPatch");
+		uninject("local-nicknames_userPopoutInfoPatch");
 		uninject("local-nicknames_dmContextPatch");
 		uninject("local-nicknames_groupDmContextPatch");
 		uninject("local-nicknames_guildUserContextPatch");
 
 		powercord.api.settings.unregisterSettings(this.entityID);
+
+		avatarManager.clearCache();
 	}
 
 	chatUsernamePatch(args, res) {
@@ -144,10 +164,11 @@ module.exports = class LocalNicknames extends Plugin {
 		const popoutChildrenRendered = popout?.props?.children(popout.props);
 
 		if (popoutChildrenRendered) {
-			popoutChildrenRendered.props.children = [
-				args[0].withMentionPrefix ? "@" : null,
-				localEdit.nickname
-			];
+			if (localEdit.nickname)
+				popoutChildrenRendered.props.children = [
+					args[0].withMentionPrefix ? "@" : null,
+					localEdit.nickname
+				];
 			if (localEdit.color !== "default")
 				popoutChildrenRendered.props.style = { color: localEdit.color };
 			popout.props.children = () => popoutChildrenRendered;
@@ -157,7 +178,9 @@ module.exports = class LocalNicknames extends Plugin {
 				e => typeof e.props?.children === "string"
 			);
 			if (!username) return res;
-			username.props.children = localEdit.nickname;
+
+			if (localEdit.nickname)
+				username.props.children = localEdit.nickname;
 			if (localEdit.color !== "default")
 				username.props.style = { color: localEdit.color };
 		}
@@ -166,26 +189,36 @@ module.exports = class LocalNicknames extends Plugin {
 
 	privateChannelPatch(_, res) {
 		if (!_this.settings.get("privateChannel", true)) return res;
+
 		if (!this.props.user) return res;
+
 		const localEdit = _this.settings.get(this.props.user.id);
+		const avatar = avatarManager.getAvatarUrl(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.name.props.children = localEdit.nickname;
+		if (localEdit.nickname)
+			res.props.name.props.children = localEdit.nickname;
 		if (localEdit.color !== "default")
 			res.props.name.props.style = { color: localEdit.color };
+		if (avatar) res.props.avatar.props.src = avatar;
 
 		return res;
 	}
 
 	memberListItemPatch(_, res) {
 		if (!_this.settings.get("memberList", true)) return res;
+
 		if (!this.props.user) return res;
+
 		const localEdit = _this.settings.get(this.props.user.id);
+		const avatar = avatarManager.getAvatarUrl(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.name.props.children = localEdit.nickname;
+		if (localEdit.nickname)
+			res.props.name.props.children = localEdit.nickname;
 		if (localEdit.color !== "default")
 			res.props.name.props.style = { color: localEdit.color };
+		if (avatar) res.props.avatar.props.src = avatar;
 
 		return res;
 	}
@@ -193,13 +226,111 @@ module.exports = class LocalNicknames extends Plugin {
 	voiceUserPatch(_, res) {
 		if (!_this.settings.get("voiceUser", true)) return res;
 		if (!res) return res;
+
 		const localEdit = _this.settings.get(this.props.user.id);
 		if (!localEdit) return res;
 
-		res.props.children = localEdit.nickname;
+		if (localEdit.nickname) res.props.children = localEdit.nickname;
 		if (localEdit.color !== "default")
 			res.props.style = { color: localEdit.color };
 
+		return res;
+	}
+	voiceUserAvatarPatch(_, res) {
+		const avatar = avatarManager.getAvatarUrl(this.props.user.id);
+		if (!avatar) return res;
+		res.props.style.backgroundImage = "url(" + avatar + ")";
+		return res;
+	}
+
+	avatarPatch(args) {
+		const [props] = args;
+		if (props.size === "SIZE_80" || props.size === "SIZE_120") return args;
+		const userId = props.userId || props.src.split("/")[4];
+		if (!userId) return args;
+		const avatar = avatarManager.getAvatarUrl(userId);
+		if (avatar) props.src = avatar;
+		return args;
+	}
+
+	userPopoutInfoPatch(args, res) {
+		const localEdit = _this.settings.get(args[0].user.id);
+		const avatar = avatarManager.getAvatarUrl(args[0].user.id);
+		if (!localEdit) return res;
+		const usernameWrapper = findInReactTree(res, e =>
+			e.children?.find(e => e?.type?.displayName === "DiscordTag")
+		);
+		usernameWrapper.children.splice(
+			2,
+			0,
+			React.createElement(
+				"div",
+				{
+					className: [
+						_this.flexClasses.flex,
+						_this.flexClasses.directionRow,
+						_this.flexClasses.alignCenter
+					].join(" ")
+				},
+				React.createElement(usernameWrapper.children[1].type, {
+					className: [
+						_this.userHeaderClasses.headerTag,
+						localEdit.nickname !== ""
+							? _this.userHeaderClasses.headerTagWithNickname
+							: ""
+					]
+						.join(" ")
+						.trim(),
+					user: {
+						id: "0",
+						username: localEdit.nickname,
+						discriminator: "0000",
+						isSystemUser: () => false,
+						isVerifiedBot: () => false,
+						toString: () =>
+							React.createElement(
+								"span",
+								{
+									style: {
+										color:
+											localEdit.color === "default"
+												? ""
+												: localEdit.color
+									}
+								},
+								localEdit.nickname
+							)
+					},
+					hideDiscriminator: true,
+					usernameClass:
+						_this.userHeaderClasses.headerTagUsernameBase,
+					usernameIcon: avatar
+						? React.createElement(_this.avatarModule.default, {
+								src: avatar,
+								size:
+									localEdit.nickname === ""
+										? "SIZE_24"
+										: "SIZE_16",
+								className:
+									localEdit.nickname === ""
+										? _this.avatarClasses.largeAvatar
+										: _this.avatarClasses.miniAvatar
+						  })
+						: null
+				}),
+				React.createElement(
+					Tooltip,
+					{ text: "Local edit" },
+					React.createElement(Icon, {
+						name: "Pencil",
+						className:
+							_this.userHeaderClasses.headerTagUsernameBase,
+						height: 16,
+						width: 16
+					})
+				)
+			)
+		);
 		return res;
 	}
 
@@ -215,16 +346,15 @@ module.exports = class LocalNicknames extends Plugin {
 					_this.modalStack.push(
 						EditModal,
 						{
-							username: user.username,
-							changed: localEdit,
+							user: user,
+							edit: localEdit,
 							limit: _this.settings.get("limit", false),
 							close: state => {
 								if (
-									state === {} ||
-									(state.nickname &&
-										state.nickname === "" &&
-										state.color &&
-										state.color === "default")
+									!state.nickname &&
+									(!state.color ||
+										state.color === "default") &&
+									!avatarManager.getAvatarUrl(user.id)
 								)
 									_this.settings.delete(user.id);
 								else _this.settings.set(user.id, state);
@@ -237,13 +367,13 @@ module.exports = class LocalNicknames extends Plugin {
 					);
 				}
 			}),
-			(localEdit.nickname && localEdit.nickname !== "") ||
-			(localEdit.color && localEdit.color !== "default")
+			localEdit
 				? React.createElement(MenuItem, {
 						id: "local-nicknames-reset",
 						label: "Reset Local Nickname",
 						action: () => {
 							_this.settings.delete(user.id);
+							avatarManager.removeAvatar(user.id);
 						}
 				  })
 				: null

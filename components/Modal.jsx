@@ -4,11 +4,8 @@ const {
 	getModule,
 	constants: { ROLE_COLORS }
 } = require("powercord/webpack");
-const {
-	AsyncComponent,
-	Button,
-	settings: { TextInput }
-} = require("powercord/components");
+const { AsyncComponent, Button } = require("powercord/components");
+const avatarManager = require("../avatarManager");
 
 let FormTitle;
 let FormItem;
@@ -17,7 +14,10 @@ let Header;
 let Content;
 let Footer;
 let ColorPicker;
-let marginBottom20;
+let TextInput;
+let marginClasses;
+let flexClasses;
+let AvatarUploader;
 
 function decimalToHex(number) {
 	return "#" + number.toString(16);
@@ -33,8 +33,11 @@ class EditNicknameModal extends React.Component {
 		super(props);
 
 		this.state = {
-			nickname: props.changed.nickname || "",
-			color: props.changed.color || "default"
+			nickname: props.edit.nickname || "",
+			color: props.edit.color || "default",
+			avatar:
+				avatarManager.getAvatarUrl(this.props.user.id) ||
+				this.props.user.getAvatarURL()
 		};
 	}
 
@@ -43,21 +46,57 @@ class EditNicknameModal extends React.Component {
 			<ModalRoot size="dynamic" transitionState={1}>
 				<Header separator={false}>
 					<FormTitle tag={FormTitle.Tags.H4}>
-						{this.props.username}
+						{this.props.user.username}
 					</FormTitle>
 				</Header>
 				<Content>
-					<TextInput
-						onChange={_ => this.setNickname(_)}
-						placeholder={this.props.username}
-						value={this.state.nickname}
-						maxlength={this.props.limit ? 1024 : 32}
+					<div
+						className={[
+							flexClasses.flex,
+							flexClasses.directionRow,
+							marginClasses.marginBottom20
+						].join(" ")}
+						style={{ gap: "25px" }}
 					>
-						{"Nickname, " +
-							this.state.nickname.length +
-							(this.props.limit ? "/∞ (1024)" : "/32")}
-					</TextInput>
-					<FormItem className={marginBottom20}>
+						<AvatarUploader
+							avatar={this.state.avatar}
+							avatarClassName="avatarUploaderInner-2EvNMg"
+							showIcon={true}
+							showRemoveButton={avatarManager.getAvatarUrl(
+								this.props.user.id
+							)}
+							onChange={dataUri => {
+								if (dataUri === null)
+									return (
+										avatarManager.removeAvatar(
+											this.props.user.id
+										),
+										this.updateAvatar()
+									);
+								try {
+									avatarManager.setAvatar(
+										this.props.user.id,
+										dataUri
+									);
+									this.updateAvatar();
+								} catch (e) {}
+							}}
+						/>
+						<FormItem style={{ width: "100%" }}>
+							<FormTitle>
+								{"Nickname, " +
+									this.state.nickname.length +
+									(this.props.limit ? "/∞ (1024)" : "/32")}
+							</FormTitle>
+							<TextInput
+								onChange={_ => this.setNickname(_)}
+								placeholder={this.props.user.username}
+								value={this.state.nickname}
+								maxlength={this.props.limit ? 1024 : 32}
+							/>
+						</FormItem>
+					</div>
+					<FormItem className={marginClasses.marginBottom20}>
 						<FormTitle>Color</FormTitle>
 						<ColorPicker
 							onChange={_ => this.setColor(decimalToHex(_))}
@@ -84,13 +123,18 @@ class EditNicknameModal extends React.Component {
 				<Footer>
 					<Button
 						type="submit"
-						onClick={() => this.props.close(this.state)}
+						onClick={() =>
+							this.props.close({
+								nickname: this.state.nickname,
+								color: this.state.color
+							})
+						}
 						autoFocus={true}
 					>
 						{Messages.DONE}
 					</Button>
 					<Button
-						onClick={() => this.props.close(this.props.changed)}
+						onClick={() => this.props.close(this.props.edit)}
 						look={Button.Looks.LINK}
 						color={Button.Colors.PRIMARY}
 					>
@@ -101,6 +145,15 @@ class EditNicknameModal extends React.Component {
 		);
 	}
 
+	updateAvatar() {
+		this.setState(prevState =>
+			Object.assign(prevState, {
+				avatar:
+					avatarManager.getAvatarUrl(this.props.user.id) ||
+					this.props.user.getAvatarURL()
+			})
+		);
+	}
 	setNickname(nickname) {
 		this.setState(prevState =>
 			Object.assign(prevState, {
@@ -133,7 +186,12 @@ module.exports = AsyncComponent.from(
 		ColorPicker = await getModule(
 			m => m.displayName === "ColorPicker" && m.defaultProps
 		);
-		marginBottom20 = (await getModule(["marginBottom20"])).marginBottom20;
+		TextInput = await getModule(m => m.displayName === "TextInput");
+		marginClasses = await getModule(["marginBottom20"]);
+		flexClasses = await getModule(["flex", "directionRow"]);
+		AvatarUploader = await getModule(
+			m => m.displayName === "AvatarUploader"
+		);
 
 		resolve(EditNicknameModal);
 	})
