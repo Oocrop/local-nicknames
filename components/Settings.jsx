@@ -56,13 +56,6 @@ module.exports = class Settings extends React.Component {
 						Voice Channels
 					</SwitchItem>
 					<SwitchItem
-						note="This applies to User Popout/Profile, Mutual Friends, Reactors"
-						value={getSetting("discordTag", true)}
-						onChange={() => toggleSetting("discordTag", true)}
-					>
-						Discord Tag
-					</SwitchItem>
-					<SwitchItem
 						value={getSetting("replies", true)}
 						onChange={() => toggleSetting("replies", true)}
 					>
