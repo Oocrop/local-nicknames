@@ -245,8 +245,8 @@ module.exports = class LocalNicknames extends Plugin {
 
 	avatarPatch(args) {
 		const [props] = args;
-		if (props.size === "SIZE_80" || props.size === "SIZE_120") return args;
-		const userId = props.userId || props.src.split("/")[4];
+		if (props.size !== "SIZE_40") return args;
+		const userId = props.userId || props.src?.split("/")[4];
 		if (!userId) return args;
 		const avatar = avatarManager.getAvatarUrl(userId);
 		if (avatar) props.src = avatar;
