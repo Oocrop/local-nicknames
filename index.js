@@ -36,9 +36,7 @@ module.exports = class LocalNicknames extends Plugin {
 		const memberListItem = await getModuleByDisplayName("MemberListItem");
 		const voiceUser = await getModuleByDisplayName("VoiceUser");
 		this.avatarModule = await getModule(["AnimatedAvatar"]);
-		const userPopoutInfo = await getModule(
-			m => m.default?.displayName === "UserPopoutInfo"
-		);
+		const userPopoutComponents = await getModule(["UserPopoutInfo"]);
 		const dmUserContextMenu = await getModule(
 			m => m.default?.displayName === "DMUserContextMenu"
 		);
@@ -95,8 +93,8 @@ module.exports = class LocalNicknames extends Plugin {
 		);
 		inject(
 			"local-nicknames_userPopoutInfoPatch",
-			userPopoutInfo,
-			"default",
+			userPopoutComponents,
+			"UserPopoutInfo",
 			this.userPopoutInfoPatch
 		);
 		inject(
