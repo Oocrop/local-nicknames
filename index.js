@@ -33,10 +33,15 @@ module.exports = class LocalNicknames extends Plugin {
 					.indexOf("getGuildMemberAvatarURLSimple)({") > -1
 		);
 		const privateChannel = await getModuleByDisplayName("PrivateChannel");
+		const userInfo = await getModule(
+			m => m.default?.displayName === "UserInfo"
+		);
 		const memberListItem = await getModuleByDisplayName("MemberListItem");
 		const voiceUser = await getModuleByDisplayName("VoiceUser");
-		this.avatarModule = await getModule(["AnimatedAvatar"]);
 		const userPopoutComponents = await getModule(["UserPopoutInfo"]);
+		const userGenericContextMenu = await getModule(
+			m => m.default?.displayName === "UserGenericContextMenu"
+		);
 		const dmUserContextMenu = await getModule(
 			m => m.default?.displayName === "DMUserContextMenu"
 		);
@@ -48,6 +53,9 @@ module.exports = class LocalNicknames extends Plugin {
 		);
 
 		this.modalStack = await getModule(["push", "popWithKey"]);
+		this.avatarModule = await getModule(["AnimatedAvatar"]);
+		this.User = await getModule(m => m.prototype?.getAvatarURL);
+
 		this.userHeaderClasses = await getModule(["headerTag"]);
 		this.avatarClasses = await getModule(["largeAvatar"]);
 		this.flexClasses = await getModule(["flex", "directionRow"]);
@@ -65,6 +73,13 @@ module.exports = class LocalNicknames extends Plugin {
 			privateChannel.prototype,
 			"render",
 			this.privateChannelPatch
+		);
+		inject(
+			"local-nicknames_userInfoPatch",
+			userInfo,
+			"default",
+			this.userInfoPatch,
+			true
 		);
 		inject(
 			"local-nicknames_memberListItemPatch",
@@ -98,6 +113,12 @@ module.exports = class LocalNicknames extends Plugin {
 			this.userPopoutInfoPatch
 		);
 		inject(
+			"local-nicknames_userGenericContextPatch",
+			userGenericContextMenu,
+			"default",
+			this.contextPatch
+		);
+		inject(
 			"local-nicknames_dmContextPatch",
 			dmUserContextMenu,
 			"default",
@@ -116,6 +137,8 @@ module.exports = class LocalNicknames extends Plugin {
 			this.contextPatch
 		);
 		this.avatarModule.default.Sizes = this.avatarModule.Sizes;
+		userInfo.default.displayName = "UserInfo";
+		userGenericContextMenu.default.displayName = "UserGenericContextMenu";
 		dmUserContextMenu.default.displayName = "DMUserContextMenu";
 		groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
 		guildUserContextMenu.default.displayName =
@@ -125,11 +148,13 @@ module.exports = class LocalNicknames extends Plugin {
 	pluginWillUnload() {
 		uninject("local-nicknames_chatUsernamePatch");
 		uninject("local-nicknames_privateChannelPatch");
+		uninject("local-nicknames_userInfoPatch");
 		uninject("local-nicknames_memberListItemPatch");
 		uninject("local-nicknames_voiceUserPatch");
 		uninject("local-nicknames_voiceUserAvatarPatch");
 		uninject("local-nicknames_avatarPatch");
 		uninject("local-nicknames_userPopoutInfoPatch");
+		uninject("local-nicknames_userGenericContextPatch");
 		uninject("local-nicknames_dmContextPatch");
 		uninject("local-nicknames_groupDmContextPatch");
 		uninject("local-nicknames_guildUserContextPatch");
@@ -195,12 +220,27 @@ module.exports = class LocalNicknames extends Plugin {
 		if (!localEdit) return res;
 
 		if (localEdit.nickname)
-			res.props.name.props.children = localEdit.nickname;
-		if (localEdit.color !== "default")
-			res.props.name.props.style = { color: localEdit.color };
+			res.props.name.props.children = React.createElement(
+				"span",
+				{ style: { color: localEdit.color } },
+				localEdit.nickname
+			);
 		if (avatar) res.props.avatar.props.src = avatar;
 
 		return res;
+	}
+
+	userInfoPatch(args) {
+		if (!_this.settings.get("friendsList", true)) return args;
+		const localEdit = _this.settings.get(args[0].user.id);
+		if (!localEdit) return args;
+		const avatar = avatarManager.getAvatarUrl(args[0].user.id);
+
+		const copy = new _this.User(args[0].user);
+		avatar && (copy.getAvatarURL = () => avatar);
+		localEdit.nickname && (copy.username = localEdit.nickname);
+		args[0].user = copy;
+		return args;
 	}
 
 	memberListItemPatch(_, res) {

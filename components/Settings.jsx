@@ -44,6 +44,12 @@ module.exports = class Settings extends React.Component {
 						DMs
 					</SwitchItem>
 					<SwitchItem
+						value={getSetting("friendsList", true)}
+						onChange={() => toggleSetting("friendsList", true)}
+					>
+						Friends List
+					</SwitchItem>
+					<SwitchItem
 						value={getSetting("memberList", true)}
 						onChange={() => toggleSetting("memberList", true)}
 					>
