@@ -32,6 +32,9 @@ module.exports = class LocalNicknames extends Plugin {
 					?.toString()
 					.indexOf("getGuildMemberAvatarURLSimple)({") > -1
 		);
+		const username = await getModule(
+			m => m.default?.displayName === "Username"
+		);
 		const privateChannel = await getModuleByDisplayName("PrivateChannel");
 		const userInfo = await getModule(
 			m => m.default?.displayName === "UserInfo"
@@ -67,6 +70,12 @@ module.exports = class LocalNicknames extends Plugin {
 			chatUsername,
 			"default",
 			this.chatUsernamePatch
+		);
+		inject(
+			"local-nicknames_usernamePatch",
+			username,
+			"default",
+			this.usernamePatch
 		);
 		inject(
 			"local-nicknames_privateChannelPatch",
@@ -138,6 +147,7 @@ module.exports = class LocalNicknames extends Plugin {
 		);
 		this.avatarModule.default.Sizes = this.avatarModule.Sizes;
 		userInfo.default.displayName = "UserInfo";
+		username.default.displayName = "Username";
 		userGenericContextMenu.default.displayName = "UserGenericContextMenu";
 		dmUserContextMenu.default.displayName = "DMUserContextMenu";
 		groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
@@ -147,6 +157,7 @@ module.exports = class LocalNicknames extends Plugin {
 
 	pluginWillUnload() {
 		uninject("local-nicknames_chatUsernamePatch");
+		uninject("local-nicknames_usernamePatch");
 		uninject("local-nicknames_privateChannelPatch");
 		uninject("local-nicknames_userInfoPatch");
 		uninject("local-nicknames_memberListItemPatch");
@@ -165,47 +176,42 @@ module.exports = class LocalNicknames extends Plugin {
 	}
 
 	chatUsernamePatch(args, res) {
-		if (
-			!args[0].hasOwnProperty("withMentionPrefix") &&
-			!_this.settings.get("inChat", true)
-		)
-			return res;
-		if (
-			args[0].hasOwnProperty("withMentionPrefix") &&
-			!_this.settings.get("replies", true)
-		)
-			return res;
+		if (!_this.settings.get("inChat", true)) return res;
 
 		const message = args[0].message;
 		const localEdit = _this.settings.get(message.author.id);
 		if (!localEdit) return res;
 
 		const popout = findInReactTree(
-			res,
+			findInReactTree(res, e => e.type === "h2"),
 			e => typeof e.props?.renderPopout === "function"
 		);
-		const popoutChildrenRendered = popout?.props?.children(popout.props);
 
-		if (popoutChildrenRendered) {
+		if (popout) {
 			if (localEdit.nickname)
-				popoutChildrenRendered.props.children = [
-					args[0].withMentionPrefix ? "@" : null,
-					localEdit.nickname
-				];
+				popout.props.author.nick = localEdit.nickname;
 			if (localEdit.color !== "default")
-				popoutChildrenRendered.props.style = { color: localEdit.color };
-			popout.props.children = () => popoutChildrenRendered;
-		} else {
-			const username = findInReactTree(
-				res,
-				e => typeof e.props?.children === "string"
-			);
-			if (!username) return res;
+				popout.props.author.colorString = localEdit.color;
+		}
+		return res;
+	}
 
-			if (localEdit.nickname)
-				username.props.children = localEdit.nickname;
+	usernamePatch(
+		[
+			{
+				message: {
+					author: { id: userID }
+				}
+			}
+		],
+		res
+	) {
+		if (!_this.settings.get("replies", true)) return res;
+		const localEdit = _this.settings.get(userID);
+		if (localEdit) {
+			if (localEdit.nickname) res.props.author.nick = localEdit.nickname;
 			if (localEdit.color !== "default")
-				username.props.style = { color: localEdit.color };
+				res.props.author.colorString = localEdit.color;
 		}
 		return res;
 	}
