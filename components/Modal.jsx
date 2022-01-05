@@ -20,7 +20,8 @@ let flexClasses;
 let AvatarUploader;
 
 function decimalToHex(number) {
-	return "#" + number.toString(16);
+	const hex = number.toString(16);
+	return "#" + ("000000".substring(0, 6 - hex.length) + hex);
 }
 
 function hexToDecimal(hex) {
