@@ -10,13 +10,15 @@ const {
 	Icon,
 	Menu: { MenuGroup, MenuItem }
 } = require("powercord/components");
-const { findInReactTree } = require("powercord/util");
+const { findInReactTree, wrapInHooks } = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
 const avatarManager = require("./avatarManager");
 var _this;
 
 module.exports = class LocalNicknames extends Plugin {
+	uninjectQueue = [];
+
 	async startPlugin() {
 		_this = this;
 
@@ -42,18 +44,6 @@ module.exports = class LocalNicknames extends Plugin {
 		const memberListItem = await getModuleByDisplayName("MemberListItem");
 		const voiceUser = await getModuleByDisplayName("VoiceUser");
 		const userPopoutComponents = await getModule(["UserPopoutInfo"]);
-		const userGenericContextMenu = await getModule(
-			m => m.default?.displayName === "UserGenericContextMenu"
-		);
-		const dmUserContextMenu = await getModule(
-			m => m.default?.displayName === "DMUserContextMenu"
-		);
-		const groupDmUserContextMenu = await getModule(
-			m => m.default?.displayName === "GroupDMUserContextMenu"
-		);
-		const guildUserContextMenu = await getModule(
-			m => m.default?.displayName === "GuildChannelUserContextMenu"
-		);
 
 		this.modalStack = await getModule(["push", "popWithKey"]);
 		this.avatarModule = await getModule(["AnimatedAvatar"]);
@@ -65,6 +55,7 @@ module.exports = class LocalNicknames extends Plugin {
 
 		this.loadStylesheet("style.css");
 
+		this.lazyContextMenuPatch();
 		inject(
 			"local-nicknames_chatUsernamePatch",
 			chatUsername,
@@ -121,38 +112,9 @@ module.exports = class LocalNicknames extends Plugin {
 			"UserPopoutInfo",
 			this.userPopoutInfoPatch
 		);
-		inject(
-			"local-nicknames_userGenericContextPatch",
-			userGenericContextMenu,
-			"default",
-			this.contextPatch
-		);
-		inject(
-			"local-nicknames_dmContextPatch",
-			dmUserContextMenu,
-			"default",
-			this.contextPatch
-		);
-		inject(
-			"local-nicknames_groupDmContextPatch",
-			groupDmUserContextMenu,
-			"default",
-			this.contextPatch
-		);
-		inject(
-			"local-nicknames_guildUserContextPatch",
-			guildUserContextMenu,
-			"default",
-			this.contextPatch
-		);
 		this.avatarModule.default.Sizes = this.avatarModule.Sizes;
 		userInfo.default.displayName = "UserInfo";
 		username.default.displayName = "Username";
-		userGenericContextMenu.default.displayName = "UserGenericContextMenu";
-		dmUserContextMenu.default.displayName = "DMUserContextMenu";
-		groupDmUserContextMenu.default.displayName = "GroupDMUserContextMenu";
-		guildUserContextMenu.default.displayName =
-			"GuildChannelUserContextMenu";
 	}
 
 	pluginWillUnload() {
@@ -169,10 +131,61 @@ module.exports = class LocalNicknames extends Plugin {
 		uninject("local-nicknames_dmContextPatch");
 		uninject("local-nicknames_groupDmContextPatch");
 		uninject("local-nicknames_guildUserContextPatch");
+		this.uninjectQueue.forEach(e => uninject(e));
 
 		powercord.api.settings.unregisterSettings(this.entityID);
 
 		avatarManager.clearCache();
+	}
+
+	async lazyContextMenuPatch() {
+		const contextMenusToPatch = [
+			"UserGenericContextMenu",
+			"DMUserContextMenu",
+			"GroupDMUserContextMenu",
+			"GuildChannelUserContextMenu"
+		];
+		const patch = (module, name) => {
+			contextMenusToPatch.splice(contextMenusToPatch.indexOf(name), 1);
+			inject(
+				`local-nicknames_${name}Patch`,
+				module,
+				"default",
+				this.contextPatch
+			);
+			this.uninjectQueue.push(`local-nicknames_${name}Patch`);
+			module.default.displayName = name;
+		};
+		contextMenusToPatch.forEach(async contextMenu => {
+			const module = await getModule(
+				m => m.default?.displayName === contextMenu
+			);
+			if (module) {
+				patch(module, contextMenu);
+			}
+		});
+		const contextMenus = await getModule(["openContextMenuLazy"]);
+		inject(
+			"local-nicknames_lazyContextMenuPatch",
+			contextMenus,
+			"openContextMenuLazy",
+			async ([event, moduleLazy]) => {
+				const render = await moduleLazy(event);
+				const component = wrapInHooks(render)();
+				if (contextMenusToPatch.includes(component.type.displayName)) {
+					contextMenusToPatch.splice(
+						contextMenusToPatch.indexOf(component.type.displayName),
+						1
+					);
+					const contextMenu = await getModule(
+						m =>
+							m.default?.displayName ===
+							component.type.displayName
+					);
+					patch(contextMenu, component.type.displayName);
+				}
+			}
+		);
 	}
 
 	chatUsernamePatch(args, res) {
