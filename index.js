@@ -2,7 +2,8 @@ const { Plugin } = require("powercord/entities");
 const {
 	getModule,
 	getModuleByDisplayName,
-	React
+	React,
+	modal: { openModal, closeAllModals }
 } = require("powercord/webpack");
 const { inject, uninject } = require("powercord/injector");
 const {
@@ -10,7 +11,7 @@ const {
 	Icon,
 	Menu: { MenuGroup, MenuItem }
 } = require("powercord/components");
-const { findInReactTree, wrapInHooks } = require("powercord/util");
+const { findInReactTree, injectContextMenu } = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
 const avatarManager = require("./avatarManager");
@@ -60,7 +61,8 @@ module.exports = class LocalNicknames extends Plugin {
 			"local-nicknames_chatUsernamePatch",
 			chatUsername,
 			"default",
-			this.chatUsernamePatch
+			this.chatUsernamePatch,
+			true
 		);
 		inject(
 			"local-nicknames_usernamePatch",
@@ -72,7 +74,8 @@ module.exports = class LocalNicknames extends Plugin {
 			"local-nicknames_privateChannelPatch",
 			privateChannel.prototype,
 			"render",
-			this.privateChannelPatch
+			this.privateChannelPatch,
+			true
 		);
 		inject(
 			"local-nicknames_userInfoPatch",
@@ -127,10 +130,6 @@ module.exports = class LocalNicknames extends Plugin {
 		uninject("local-nicknames_voiceUserAvatarPatch");
 		uninject("local-nicknames_avatarPatch");
 		uninject("local-nicknames_userPopoutInfoPatch");
-		uninject("local-nicknames_userGenericContextPatch");
-		uninject("local-nicknames_dmContextPatch");
-		uninject("local-nicknames_groupDmContextPatch");
-		uninject("local-nicknames_guildUserContextPatch");
 		this.uninjectQueue.forEach(e => uninject(e));
 
 		powercord.api.settings.unregisterSettings(this.entityID);
@@ -139,74 +138,32 @@ module.exports = class LocalNicknames extends Plugin {
 	}
 
 	async lazyContextMenuPatch() {
-		const contextMenusToPatch = [
+		[
 			"UserGenericContextMenu",
 			"DMUserContextMenu",
 			"GroupDMUserContextMenu",
 			"GuildChannelUserContextMenu"
-		];
-		const patch = (module, name) => {
-			contextMenusToPatch.splice(contextMenusToPatch.indexOf(name), 1);
-			inject(
+		].forEach(name => {
+			injectContextMenu(
 				`local-nicknames_${name}Patch`,
-				module,
-				"default",
+				name,
 				this.contextPatch
 			);
 			this.uninjectQueue.push(`local-nicknames_${name}Patch`);
-			module.default.displayName = name;
-		};
-		contextMenusToPatch.forEach(async contextMenu => {
-			const module = await getModule(
-				m => m.default?.displayName === contextMenu
-			);
-			if (module) {
-				patch(module, contextMenu);
-			}
 		});
-		const contextMenus = await getModule(["openContextMenuLazy"]);
-		inject(
-			"local-nicknames_lazyContextMenuPatch",
-			contextMenus,
-			"openContextMenuLazy",
-			async ([event, moduleLazy]) => {
-				const render = await moduleLazy(event);
-				const component = wrapInHooks(render)();
-				if (contextMenusToPatch.includes(component.type.displayName)) {
-					contextMenusToPatch.splice(
-						contextMenusToPatch.indexOf(component.type.displayName),
-						1
-					);
-					const contextMenu = await getModule(
-						m =>
-							m.default?.displayName ===
-							component.type.displayName
-					);
-					patch(contextMenu, component.type.displayName);
-				}
-			}
-		);
 	}
 
-	chatUsernamePatch(args, res) {
-		if (!_this.settings.get("inChat", true)) return res;
+	chatUsernamePatch(args) {
+		if (!_this.settings.get("inChat", true)) return args;
+		if (!args[0]) return args;
 
-		const message = args[0].message;
-		const localEdit = _this.settings.get(message.author.id);
-		if (!localEdit) return res;
+		const localEdit = _this.settings.get(args[0].message.author.id);
+		if (!localEdit) return args;
 
-		const popout = findInReactTree(
-			findInReactTree(res, e => e.type === "h2"),
-			e => typeof e.props?.renderPopout === "function"
-		);
-
-		if (popout) {
-			if (localEdit.nickname)
-				popout.props.author.nick = localEdit.nickname;
-			if (localEdit.color !== "default")
-				popout.props.author.colorString = localEdit.color;
-		}
-		return res;
+		if (localEdit.nickname) args[0].author.nick = localEdit.nickname;
+		if (localEdit.color !== "default")
+			args[0].author.colorString = localEdit.color;
+		return args;
 	}
 
 	usernamePatch(
@@ -229,24 +186,24 @@ module.exports = class LocalNicknames extends Plugin {
 		return res;
 	}
 
-	privateChannelPatch(_, res) {
-		if (!_this.settings.get("privateChannel", true)) return res;
+	privateChannelPatch(args) {
+		if (!_this.settings.get("privateChannel", true)) return args;
 
-		if (!this.props.user) return res;
+		if (!this.props.user) return args;
 
 		const localEdit = _this.settings.get(this.props.user.id);
 		const avatar = avatarManager.getAvatarUrl(this.props.user.id);
-		if (!localEdit) return res;
+		if (!localEdit) return args;
 
 		if (localEdit.nickname)
-			res.props.name.props.children = React.createElement(
+			this.props.channelName = React.createElement(
 				"span",
 				{ style: { color: localEdit.color } },
 				localEdit.nickname
 			);
-		if (avatar) res.props.avatar.props.src = avatar;
+		if (avatar) this.props.user.getAvatarURL = () => avatar;
 
-		return res;
+		return args;
 	}
 
 	userInfoPatch(args) {
@@ -377,7 +334,7 @@ module.exports = class LocalNicknames extends Plugin {
 				}),
 				React.createElement(
 					Tooltip,
-					{ text: "Local edit" },
+					{ text: "Local Edit" },
 					React.createElement(Icon, {
 						name: "Pencil",
 						className:
@@ -393,16 +350,16 @@ module.exports = class LocalNicknames extends Plugin {
 
 	contextPatch(args, res) {
 		const user = args[0].user;
-		const localEdit = _this.settings.get(user.id, {});
+		const emptyObj = {};
+		const localEdit = _this.settings.get(user.id, emptyObj);
 
 		const customGroup = React.createElement(MenuGroup, null, [
 			React.createElement(MenuItem, {
 				id: "local-nicknames-edit",
 				label: "Edit Local Nickname",
 				action: () => {
-					_this.modalStack.push(
-						EditModal,
-						{
+					openModal(() =>
+						React.createElement(EditModal, {
 							user: user,
 							edit: localEdit,
 							limit: _this.settings.get("limit", false),
@@ -415,16 +372,13 @@ module.exports = class LocalNicknames extends Plugin {
 								)
 									_this.settings.delete(user.id);
 								else _this.settings.set(user.id, state);
-								_this.modalStack.popWithKey(
-									"local-nicknames-modal"
-								);
+								closeAllModals("local-nicknames-modal");
 							}
-						},
-						"local-nicknames-modal"
+						})
 					);
 				}
 			}),
-			localEdit
+			localEdit !== emptyObj
 				? React.createElement(MenuItem, {
 						id: "local-nicknames-reset",
 						label: "Reset Local Nickname",
@@ -436,7 +390,7 @@ module.exports = class LocalNicknames extends Plugin {
 				: null
 		]);
 
-		const groups = res.props.children.props.children;
+		const groups = res.props.children;
 
 		const devGroup = groups.find(
 			c =>

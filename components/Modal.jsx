@@ -7,17 +7,18 @@ const {
 const { AsyncComponent, Button } = require("powercord/components");
 const avatarManager = require("../avatarManager");
 
-let FormTitle;
-let FormItem;
-let ModalRoot;
-let Header;
-let Content;
-let Footer;
-let ColorPicker;
-let TextInput;
-let marginClasses;
-let flexClasses;
-let AvatarUploader;
+let FormTitle,
+	FormItem,
+	ModalRoot,
+	Header,
+	Content,
+	Footer,
+	ColorPicker,
+	TextInput,
+	marginClasses,
+	flexClasses,
+	avatarUploaderClasses,
+	ImageUploader;
 
 function decimalToHex(number) {
 	const hex = number.toString(16);
@@ -59,9 +60,12 @@ class EditNicknameModal extends React.Component {
 						].join(" ")}
 						style={{ gap: "25px" }}
 					>
-						<AvatarUploader
-							avatar={this.state.avatar}
-							avatarClassName="avatarUploaderInner-2EvNMg"
+						<ImageUploader
+							className={avatarUploaderClasses.avatarUploader}
+							image={this.state.avatar}
+							imageClassName={
+								avatarUploaderClasses.avatarUploaderInner
+							}
 							showIcon={true}
 							showRemoveButton={avatarManager.getAvatarUrl(
 								this.props.user.id
@@ -190,9 +194,8 @@ module.exports = AsyncComponent.from(
 		TextInput = await getModule(m => m.displayName === "TextInput");
 		marginClasses = await getModule(["marginBottom20"]);
 		flexClasses = await getModule(["flex", "directionRow"]);
-		AvatarUploader = await getModule(
-			m => m.displayName === "AvatarUploader"
-		);
+		avatarUploaderClasses = await getModule(["avatarUploader"]);
+		ImageUploader = await getModule(m => m.displayName === "ImageUploader");
 
 		resolve(EditNicknameModal);
 	})
