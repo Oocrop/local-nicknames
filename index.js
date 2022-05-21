@@ -11,7 +11,11 @@ const {
 	Icon,
 	Menu: { MenuGroup, MenuItem }
 } = require("powercord/components");
-const { findInReactTree, injectContextMenu } = require("powercord/util");
+const {
+	findInReactTree,
+	injectContextMenu,
+	wrapInHooks
+} = require("powercord/util");
 const EditModal = require("./components/Modal");
 const PluginSettings = require("./components/Settings");
 const avatarManager = require("./avatarManager");
@@ -42,7 +46,9 @@ module.exports = class LocalNicknames extends Plugin {
 		const userInfo = await getModule(
 			m => m.default?.displayName === "UserInfo"
 		);
-		const memberListItem = await getModuleByDisplayName("MemberListItem");
+		const memberListItemMemo = (
+			await getModule(["AVATAR_DECORATION_PADDING"])
+		).default;
 		const voiceUser = await getModuleByDisplayName("VoiceUser");
 		const userPopoutComponents = await getModule(["UserPopoutInfo"]);
 
@@ -85,12 +91,6 @@ module.exports = class LocalNicknames extends Plugin {
 			true
 		);
 		inject(
-			"local-nicknames_memberListItemPatch",
-			memberListItem.prototype,
-			"render",
-			this.memberListItemPatch
-		);
-		inject(
 			"local-nicknames_voiceUserPatch",
 			voiceUser.prototype,
 			"renderName",
@@ -118,6 +118,17 @@ module.exports = class LocalNicknames extends Plugin {
 		this.avatarModule.default.Sizes = this.avatarModule.Sizes;
 		userInfo.default.displayName = "UserInfo";
 		username.default.displayName = "Username";
+
+		const memberListItem = wrapInHooks(
+			() => memberListItemMemo.type().type
+		)();
+
+		inject(
+			"local-nicknames_memberListItemPatch",
+			memberListItem.prototype,
+			"render",
+			this.memberListItemPatch
+		);
 	}
 
 	pluginWillUnload() {
